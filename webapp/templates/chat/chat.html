@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ACU AI Chatbot</title>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        header { background: #1a3a6b; color: white; width: 100%; max-width: 800px; padding: 16px; border-radius: 12px 12px 0 0; text-align: center; }
+        .chat-container { background: white; width: 100%; max-width: 800px; min-height: 400px; padding: 20px; border: 1px solid #ddd; }
+        .message { margin-bottom: 20px; padding: 12px; border-radius: 8px; }
+        .question { background: #e8f0fe; border-left: 4px solid #1a3a6b; }
+        .answer { background: #f8f9fa; border-left: 4px solid #28a745; }
+        .label { font-size: 0.75rem; font-weight: bold; color: #666; margin-bottom: 6px; }
+        .empty-state { text-align: center; color: #999; padding: 60px 20px; }
+        .input-area { background: white; width: 100%; max-width: 800px; padding: 16px; border: 1px solid #ddd; border-top: 2px solid #1a3a6b; border-radius: 0 0 12px 12px; display: flex; gap: 10px; }
+        .input-area input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 0.95rem; }
+        .input-area button { padding: 10px 20px; background: #1a3a6b; color: white; border: none; border-radius: 8px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🎓 ACU AI Chatbot</h1>
+        <p>Ask me anything about Acıbadem University</p>
+    </header>
+    <div class="chat-container" id="chatContainer">
+        {% if messages %}
+            {% for msg in messages %}
+                <div class="message question"><div class="label">You asked</div>{{ msg.question }}</div>
+                <div class="message answer"><div class="label">AI Answer</div>{{ msg.answer }}</div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state"><p>👋 No conversations yet. Ask a question below!</p></div>
+        {% endif %}
+    </div>
+    <div class="input-area">
+        <input type="text" id="questionInput" placeholder="e.g. What programs does ACU offer?" onkeypress="if(event.key==='Enter') sendQuestion()"/>
+        <button onclick="sendQuestion()">Ask</button>
+    </div>
+    <script>
+        function sendQuestion() {
+            const input = document.getElementById('questionInput');
+            const question = input.value.trim();
+            if (!question) return;
+            const container = document.getElementById('chatContainer');
+            container.innerHTML += `
+                <div class="message question"><div class="label">You asked</div>${question}</div>
+                <div class="message answer"><div class="label">AI Answer</div>⏳ AI coming in Week 2!</div>`;
+            input.value = '';
+            container.scrollTop = container.scrollHeight;
+        }
+    </script>
+</body>
+</html>
