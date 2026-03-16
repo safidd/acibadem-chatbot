@@ -53,6 +53,7 @@ Answer:"""
 def check_ollama_connection():
     """
     Returns True if Ollama is reachable, False otherwise.
+    Useful for health checks.
     """
     try:
         response = requests.get("http://ollama:11434", timeout=5)
