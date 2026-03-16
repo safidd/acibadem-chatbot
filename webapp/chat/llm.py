@@ -59,3 +59,16 @@ def check_ollama_connection():
         return True
     except:
         return False
+
+
+def list_available_models():
+    """
+    Returns a list of models available in Ollama.
+    Useful for debugging and checking what models are pulled.
+    """
+    try:
+        response = requests.get("http://ollama:11434/api/tags", timeout=5)
+        data = response.json()
+        return [model["name"] for model in data.get("models", [])]
+    except:
+        return []
