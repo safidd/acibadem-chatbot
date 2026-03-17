@@ -23,7 +23,7 @@ def ask_ollama(question, context=""):
         prompt = f"""You are a helpful assistant for Acibadem University (ACU).
 Use ONLY the following information from the ACU website to answer the question.
 If the answer is not in the context, say: "I don't have that information available. Please visit acibadem.edu.tr for more details."
-Do not make up any information. Be concise and helpful.
+IMPORTANT: Never modify, guess, or extend any contact details like emails, phone numbers, or addresses. Copy them exactly as they appear in the context or do not include them.
 
 Context:
 {context}
