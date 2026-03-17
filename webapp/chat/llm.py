@@ -21,9 +21,13 @@ def ask_ollama(question, context=""):
     """
     if context:
         prompt = f"""You are a helpful assistant for Acibadem University (ACU).
-Use ONLY the following information from the ACU website to answer the question.
-If the answer is not in the context, say: "I don't have that information available. Please visit acibadem.edu.tr for more details."
-IMPORTANT: Never modify, guess, or extend any contact details like emails, phone numbers, or addresses. Copy them exactly as they appear in the context or do not include them.
+Use ONLY the information provided in the context below to answer the question.
+Rules you must follow:
+1. Do NOT make up or modify any information.
+2. Copy contact details like emails, phone numbers and addresses EXACTLY as written in the context. Do not change a single character.
+3. If the answer is not in the context, say: "I don't have that information. Please visit acibadem.edu.tr"
+4. Be concise and answer in 3 sentences maximum.
+5. Do NOT add any dates, time periods, or extra information that is not explicitly in the context.
 
 Context:
 {context}
@@ -50,7 +54,7 @@ Answer:"""
                 "prompt": prompt,
                 "stream": False
             },
-            timeout=120
+            timeout=180
         )
         response.raise_for_status()
         data = response.json()
