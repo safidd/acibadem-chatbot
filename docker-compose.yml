@@ -49,15 +49,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-  ollama:
-    image: ollama/ollama
-    restart: always
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
 
 volumes:
   postgres_data:
   ollama_data:
-  
