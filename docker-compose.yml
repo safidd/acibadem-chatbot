@@ -2,6 +2,14 @@ version: '3.8'
 
 services:
 
+  ollama:
+    image: ollama/ollama
+    restart: always
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
   db:
     image: postgres:15
     restart: always
@@ -44,3 +52,4 @@ services:
 
 volumes:
   postgres_data:
+  ollama_data:
