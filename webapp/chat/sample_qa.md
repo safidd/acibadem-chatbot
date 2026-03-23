@@ -1,37 +1,38 @@
 # Sample Q&A — ACU Chatbot Final Test Results
-## Week 4 Testing — Full Pipeline (DB Context + Ollama in Docker)
+## Week 5 Testing — After Prompt Improvements
 
 ### Q1: What faculties does Acibadem University have?
-Acibadem University has the following faculties: Faculty of Medicine, Dentistry, Pharmacy and Engineering. Additionally, it offers programs in Health Sciences (Nursing, Physiotherapy, Nutrition) and Economics & Administrative Sciences (Business Administration, Health Management).
+Acibadem University has the following faculties: Medicine, Dentistry, Pharmacy, Engineering and Natural Sciences (Computer Engineering, Biomedical Engineering, Genetics and Bioengineering), Health Sciences (Nursing, Physiotherapy, Nutrition), and Economics and Administrative Sciences (Business Administration, Health Management).
 
 ### Q2: Where is Acibadem University located?
-Acibadem University is in Istanbul, Turkey, with campuses in Altunizade and Maslak.
+Acibadem University is situated at Altunizade Campus within Uskudar district of Istanbul, Turkey, as well as having a campus in Maslak.
 
 ### Q3: What undergraduate programs does the Faculty of Engineering offer?
-Computer Engineering, Biomedical Engineering, Genetics and Bioengineering. For more information visit acibadem.edu.tr.
+Computer Engineering, Biomedical Engineering, and Genetics and Bioengineering.
 
 ### Q4: How can I apply to Acibadem University?
-You can apply directly through acibadem.edu.tr as an international student, provided you have evidence of your English language skills from TOEFL or IELTS tests. Domestic students should take the YKS examination.
+Domestic students should take the YKS exam while international applicants need to apply directly through acibadem.edu.tr and provide proof of English proficiency (TOEFL or IELTS).
 
 ### Q5: What are the admission requirements for international students?
-International students must provide proof of English proficiency (TOEFL or IELTS). Please visit acibadem.edu.tr for more detailed requirements.
+International students must apply directly via acibadem.edu.tr and provide proof of English proficiency (TOEFL or IELTS). Please visit acibadem.edu.tr for complete details.
 
 ### Q6: Does Acibadem University have exchange programs?
-Acibadem University offers Erasmus+ exchange programs with over 100 partner universities worldwide. Applications are made through the International Office.
+Yes, Acibadem University offers Erasmus+ exchange programs and has partnerships with over 100 universities worldwide. Applications are made through the International Office.
 
 ### Q7: What is the language of instruction at Acibadem University?
 English.
 
 ### Q8: How many campuses does Acibadem University have?
-Acibadem University has two campuses, located in Altunizade and Maslak.
+Acibadem University has two campuses located in Altunizade and Maslak, Istanbul.
 
 ### Q9: What research centers does Acibadem University have?
-The university has simulation centers and modern lab facilities. Please visit acibadem.edu.tr for more accurate and updated information on research centers.
+I don't have that information. Please visit acibadem.edu.tr for details on research centers.
 
 ### Q10: How can I contact the student affairs office?
-To reach the Student Affairs office, email ogrenciisleri@acibadem.edu.tr or call +90 216 500 44 44.
+Email ogrenciisleri@acibadem.edu.tr or call +90 216 500 44 44.
 
 ## Notes
-- Questions with full context (Q1, Q2, Q4, Q7, Q8, Q10) gave accurate answers
-- Questions outside the scraped data (Q6, Q9) correctly redirected to acibadem.edu.tr
-- No hallucinations of contact details after prompt engineering improvements
+- Q1, Q2, Q3, Q4, Q6, Q7, Q10 — accurate answers based on DB context
+- Q9 — insufficient scraped data, will improve when Safiye scrapes more pages
+- Q8 — answers correctly from DB context after keyword fix
+- Hallucination of contact details eliminated after prompt engineering iterations
