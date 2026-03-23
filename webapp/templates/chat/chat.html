@@ -195,11 +195,11 @@
             container.innerHTML += `
                 <div class="message question">
                     <div class="label">You asked</div>
-                    ${question}
+                    <div>${question}</div>
                 </div>
                 <div class="message answer" id="${msgId}">
                     <div class="label">AI Answer</div>
-                    ⏳ Thinking...
+                    <div>⏳ Thinking...</div>
                 </div>`;
 
             input.value = '';
@@ -214,11 +214,11 @@
                 const data = await response.json();
                 document.getElementById(msgId).innerHTML = `
                     <div class="label">AI Answer</div>
-                    ${data.answer || data.error || 'No response received'}`;
+                    <div>${data.answer || data.error || 'No response received'}</div>`;
             } catch (error) {
                 document.getElementById(msgId).innerHTML = `
                     <div class="label">AI Answer</div>
-                    Could not reach the AI. Please try again.`;
+                    <div style="color:#c00">Could not reach the AI. Please try again.</div>`;
             }
 
             container.scrollTop = container.scrollHeight;
