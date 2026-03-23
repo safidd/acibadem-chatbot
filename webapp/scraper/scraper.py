@@ -3,22 +3,25 @@ from bs4 import BeautifulSoup
 import time
 
 URLS = [
-    "https://www.acibadem.edu.tr/universite",
-    "https://www.acibadem.edu.tr/aday/ogrenci",
-    "https://www.acibadem.edu.tr/akademik/lisans",
-    "https://www.acibadem.edu.tr/akademik/onlisans",
-    "https://www.acibadem.edu.tr/akademik/lisansustu",
-    "https://www.acibadem.edu.tr/ogrenci/ogrenci",
-    "https://www.acibadem.edu.tr/arastirma",
-    "https://www.acibadem.edu.tr/surdurulebilir-kampus",
-    "https://www.acibadem.edu.tr/kayit/iletisim/ulasim",
+    "https://www.acibadem.edu.tr/en",
+    "https://www.acibadem.edu.tr/en/university",
+    "https://www.acibadem.edu.tr/en/ogrenci/student",
+    "https://www.acibadem.edu.tr/en/akademik/lisans",
+    "https://www.acibadem.edu.tr/en/academic/associate-degree-programs",
+    "https://www.acibadem.edu.tr/en/academic/graduate-programs/graduate-school-of-health-sciences",
+    "https://www.acibadem.edu.tr/en/research",
+    "https://www.acibadem.edu.tr/en/surdurulebilirlik/sustainable-campus",
+    "https://www.acibadem.edu.tr/en/international-office/international-students",
+    "https://www.acibadem.edu.tr/en/kayit/iletisim/ulasim",
 ]
+
 
 def get_page_content(url):
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
         response = requests.get(url, headers=headers, timeout=10)
         if response.status_code != 200:
+            print(f"Failed to fetch {url} — status {response.status_code}")
             return None, None
         soup = BeautifulSoup(response.text, 'html.parser')
         title = soup.title.text.strip() if soup.title else url
@@ -33,7 +36,7 @@ def get_page_content(url):
 
 def run_scraper():
     from chat.models import Page
-    print(f"Starting scraper - {len(URLS)} pages to scrape")
+    print(f"Starting scraper — {len(URLS)} pages to scrape")
     print("=" * 50)
     success = 0
     failed = 0
@@ -46,12 +49,12 @@ def run_scraper():
                 defaults={'title': title, 'content': content}
             )
             if created:
-                print(f"  Saved: {title[:50]}")
+                print(f"  ✓ Saved: {title[:50]}")
             else:
-                print(f"  Updated: {title[:50]}")
+                print(f"  ✓ Updated: {title[:50]}")
             success += 1
         else:
-            print(f"  Failed or empty content")
+            print(f"  ✗ Failed or empty content")
             failed += 1
         if i < len(URLS):
             print(f"  Waiting 2 seconds...")
