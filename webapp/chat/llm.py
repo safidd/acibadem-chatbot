@@ -54,7 +54,7 @@ Answer:"""
                 "prompt": prompt,
                 "stream": False
             },
-            timeout=180
+            timeout=300
         )
         response.raise_for_status()
         data = response.json()
@@ -77,9 +77,19 @@ def get_context_from_db(question):
         from .models import Page
         from django.db.models import Q
 
-        # Split question into keywords and search
-        keywords = [w for w in question.lower().split() if len(w) > 3]
-        
+        # Filter out common words, keep only meaningful keywords
+        stopwords = {'what', 'where', 'when', 'which', 'have', 'has', 'does', 
+                     'acibadem', 'university', 'about', 'tell', 'from', 'that',
+                     'this', 'with', 'their', 'there', 'they', 'your', 'many',
+                     'much', 'some', 'more', 'than', 'then', 'into', 'over'}
+
+        keywords = [
+            w.strip('?.,!') for w in question.lower().split() 
+            if len(w) > 3 and w.lower() not in stopwords
+        ]
+
+        print(f"Filtered keywords: {keywords}")
+
         query = Q()
         for keyword in keywords:
             query |= Q(content__icontains=keyword) | Q(title__icontains=keyword)
