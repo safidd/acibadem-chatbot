@@ -6,24 +6,143 @@
     <title>ACU AI Chatbot</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: sans-serif; background: #f0f2f5; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        header { background: #1a3a6b; color: white; width: 100%; max-width: 800px; padding: 16px; border-radius: 12px 12px 0 0; text-align: center; }
-        header h1 { font-size: 1.4rem; }
-        header p { font-size: 0.85rem; opacity: 0.8; margin-top: 4px; }
-        .chat-container { background: white; width: 100%; max-width: 800px; min-height: 400px; padding: 20px; border: 1px solid #ddd; overflow-y: auto; }
-        .message { margin-bottom: 20px; padding: 12px; border-radius: 8px; }
-        .question { background: #e8f0fe; border-left: 4px solid #1a3a6b; }
-        .answer { background: #f8f9fa; border-left: 4px solid #28a745; }
-        .label { font-size: 0.75rem; font-weight: bold; color: #666; margin-bottom: 6px; }
-        .empty-state { text-align: center; color: #999; padding: 60px 20px; }
-        .input-area { background: white; width: 100%; max-width: 800px; padding: 16px; border: 1px solid #ddd; border-top: 2px solid #1a3a6b; border-radius: 0 0 12px 12px; display: flex; gap: 10px; }
-        .input-area input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 0.95rem; }
-        .input-area input:focus { border-color: #1a3a6b; outline: none; }
-        .input-area button { padding: 10px 20px; background: #1a3a6b; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 0.95rem; }
-        .input-area button:hover { background: #14305a; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f0e8;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        header {
+            background: #002147;
+            width: 100%;
+            max-width: 800px;
+            padding: 20px 24px;
+            border-radius: 12px 12px 0 0;
+            text-align: center;
+            border-bottom: 4px solid #FFD700;
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            color: #FFD700;
+            letter-spacing: 1px;
+        }
+
+        header p {
+            font-size: 0.85rem;
+            color: rgba(255, 215, 0, 0.7);
+            margin-top: 4px;
+        }
+
+        .chat-container {
+            background: white;
+            width: 100%;
+            max-width: 800px;
+            min-height: 450px;
+            max-height: 550px;
+            padding: 20px;
+            overflow-y: auto;
+            border-left: 1px solid #ddd;
+            border-right: 1px solid #ddd;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            padding: 14px 16px;
+            border-radius: 8px;
+        }
+
+        .question {
+            background: #fff8dc;
+            border-left: 4px solid #FFD700;
+        }
+
+        .answer {
+            background: #f0f4fb;
+            border-left: 4px solid #002147;
+        }
+
+        .label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #888;
+            margin-bottom: 6px;
+        }
+
+        .question .label { color: #b8860b; }
+        .answer .label { color: #002147; }
+
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 80px 20px;
+        }
+
+        .empty-state p:first-child {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .input-area {
+            background: white;
+            width: 100%;
+            max-width: 800px;
+            padding: 16px;
+            border: 1px solid #ddd;
+            border-top: 4px solid #FFD700;
+            border-radius: 0 0 12px 12px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-area input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-area input:focus {
+            border-color: #002147;
+        }
+
+        .input-area button {
+            padding: 12px 24px;
+            background: #FFD700;
+            color: #002147;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            transition: background 0.2s;
+        }
+
+        .input-area button:hover {
+            background: #e6c200;
+        }
+
+        .footer-note {
+            margin-top: 10px;
+            font-size: 0.75rem;
+            color: #999;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
+
     <header>
         <h1>🎓 ACU AI Chatbot</h1>
         <p>Ask me anything about Acıbadem University</p>
@@ -32,20 +151,35 @@
     <div class="chat-container" id="chatContainer">
         {% if messages %}
             {% for msg in messages %}
-                <div class="message question"><div class="label">You asked</div>{{ msg.question }}</div>
-                <div class="message answer"><div class="label">AI Answer</div>{{ msg.answer }}</div>
+                <div class="message question">
+                    <div class="label">You asked</div>
+                    {{ msg.question }}
+                </div>
+                <div class="message answer">
+                    <div class="label">AI Answer</div>
+                    {{ msg.answer }}
+                </div>
             {% endfor %}
         {% else %}
             <div class="empty-state">
-                <p>👋 No conversations yet. Ask a question below!</p>
+                <p>🎓</p>
+                <p>No conversations yet.</p>
+                <p style="margin-top: 6px; font-size: 0.9rem;">Ask a question below to get started!</p>
             </div>
         {% endif %}
     </div>
 
     <div class="input-area">
-        <input type="text" id="questionInput" placeholder="e.g. What programs does ACU offer?" onkeypress="if(event.key==='Enter') sendQuestion()"/>
+        <input
+            type="text"
+            id="questionInput"
+            placeholder="e.g. What programs does ACU offer?"
+            onkeypress="if(event.key==='Enter') sendQuestion()"
+        />
         <button onclick="sendQuestion()">Ask</button>
     </div>
+
+    <p class="footer-note">Powered by ACU AI — Acıbadem University</p>
 
     <script>
         async function sendQuestion() {
@@ -61,11 +195,11 @@
             container.innerHTML += `
                 <div class="message question">
                     <div class="label">You asked</div>
-                    ${question}
+                    <div>${question}</div>
                 </div>
                 <div class="message answer" id="${msgId}">
                     <div class="label">AI Answer</div>
-                    ⏳ Thinking...
+                    <div>⏳ Thinking...</div>
                 </div>`;
 
             input.value = '';
@@ -80,14 +214,16 @@
                 const data = await response.json();
                 document.getElementById(msgId).innerHTML = `
                     <div class="label">AI Answer</div>
-                    ${data.answer || data.error || 'No response received'}`;
+                    <div>${data.answer || data.error || 'No response received'}</div>`;
             } catch (error) {
                 document.getElementById(msgId).innerHTML = `
                     <div class="label">AI Answer</div>
-                    ❌ Could not reach the AI. Please try again.`;
+                    <div style="color:#c00">Could not reach the AI. Please try again.</div>`;
             }
+
             container.scrollTop = container.scrollHeight;
         }
     </script>
+
 </body>
 </html>
