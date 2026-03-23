@@ -37,17 +37,39 @@
         <button onclick="sendQuestion()">Ask</button>
     </div>
     <script>
-        function sendQuestion() {
-            const input = document.getElementById('questionInput');
-            const question = input.value.trim();
-            if (!question) return;
-            const container = document.getElementById('chatContainer');
-            container.innerHTML += `
-                <div class="message question"><div class="label">You asked</div>${question}</div>
-                <div class="message answer"><div class="label">AI Answer</div>⏳ AI coming in Week 2!</div>`;
-            input.value = '';
+    function sendQuestion() {
+        const input = document.getElementById('questionInput');
+        const question = input.value.trim();
+        if (!question) return;
+        
+        const container = document.getElementById('chatContainer');
+        
+        // Remove empty state if present
+        const emptyState = container.querySelector('.empty-state');
+        if (emptyState) emptyState.remove();
+
+        // Show question and loading indicator
+        container.innerHTML += `
+            <div class="message question"><div class="label">You asked</div>${question}</div>
+            <div class="message answer" id="loading"><div class="label">AI Answer</div>⏳ Thinking...</div>`;
+        input.value = '';
+        container.scrollTop = container.scrollHeight;
+
+        // Call the API
+        fetch('/api/chat/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question: question })
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('loading').innerHTML = 
+                `<div class="label">AI Answer</div>${data.answer || data.error}`;
             container.scrollTop = container.scrollHeight;
-        }
-    </script>
-</body>
-</html>
+        })
+        .catch(error => {
+            document.getElementById('loading').innerHTML = 
+                `<div class="label">AI Answer</div>Sorry, something went wrong. Please try again.`;
+        });
+    }
+</script>
