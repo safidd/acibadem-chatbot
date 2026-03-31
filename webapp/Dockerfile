@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     chromium \
     chromium-driver \
+    cron \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
