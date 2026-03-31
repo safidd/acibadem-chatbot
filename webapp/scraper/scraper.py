@@ -2,26 +2,62 @@ import requests
 from bs4 import BeautifulSoup
 import time
 
-URLS = [
-    "https://www.acibadem.edu.tr/en",
-    "https://www.acibadem.edu.tr/en/university",
-    "https://www.acibadem.edu.tr/en/ogrenci/student",
-    "https://www.acibadem.edu.tr/en/akademik/lisans",
-    "https://www.acibadem.edu.tr/en/academic/associate-degree-programs",
-    "https://www.acibadem.edu.tr/en/academic/graduate-programs/graduate-school-of-health-sciences",
-    "https://www.acibadem.edu.tr/en/research",
-    "https://www.acibadem.edu.tr/en/surdurulebilirlik/sustainable-campus",
-    "https://www.acibadem.edu.tr/en/international-office/international-students",
-    "https://www.acibadem.edu.tr/en/kayit/iletisim/ulasim",
+SITEMAP_URLS = [
+    "https://www.acibadem.edu.tr/sitemap.xml?page=1",
+    "https://www.acibadem.edu.tr/sitemap.xml?page=2",
 ]
 
+def to_english_url(url):
+    """Convert Turkish URL to potential English URL"""
+    return url.replace(
+        'https://www.acibadem.edu.tr/',
+        'https://www.acibadem.edu.tr/en/'
+    )
+
+def english_url_exists(url):
+    """Quick HEAD request — no page download, just checks if URL works"""
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
+        response = requests.head(url, headers=headers, timeout=5, allow_redirects=True)
+        return response.status_code == 200
+    except:
+        return False
+
+def get_english_urls_from_sitemap():
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
+        all_turkish_urls = []
+
+        for sitemap_url in SITEMAP_URLS:
+            response = requests.get(sitemap_url, headers=headers, timeout=10)
+            soup = BeautifulSoup(response.text, 'html.parser')
+            urls = [loc.text.strip() for loc in soup.find_all('loc')]
+            all_turkish_urls.extend(urls)
+            print(f"Found {len(urls)} URLs in {sitemap_url}")
+
+        print(f"Total URLs: {len(all_turkish_urls)} — checking English versions...")
+
+        english_urls = []
+        for i, url in enumerate(all_turkish_urls, 1):
+            en_url = to_english_url(url)
+            if english_url_exists(en_url):
+                english_urls.append(en_url)
+            if i % 50 == 0:
+                print(f"  Checked {i}/{len(all_turkish_urls)} — found {len(english_urls)} English pages so far...")
+            time.sleep(0.3)
+
+        print(f"Total valid English pages found: {len(english_urls)}")
+        return english_urls
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return []
 
 def get_page_content(url):
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
         response = requests.get(url, headers=headers, timeout=10)
         if response.status_code != 200:
-            print(f"Failed to fetch {url} — status {response.status_code}")
             return None, None
         soup = BeautifulSoup(response.text, 'html.parser')
         title = soup.title.text.strip() if soup.title else url
@@ -36,12 +72,16 @@ def get_page_content(url):
 
 def run_scraper():
     from chat.models import Page
-    print(f"Starting scraper — {len(URLS)} pages to scrape")
+    urls = get_english_urls_from_sitemap()
+    if not urls:
+        print("No English URLs found!")
+        return
+    print(f"Starting scraper — {len(urls)} English pages to scrape")
     print("=" * 50)
     success = 0
     failed = 0
-    for i, url in enumerate(URLS, 1):
-        print(f"[{i}/{len(URLS)}] Scraping: {url}")
+    for i, url in enumerate(urls, 1):
+        print(f"[{i}/{len(urls)}] Scraping: {url}")
         title, content = get_page_content(url)
         if title and content and len(content) > 100:
             page, created = Page.objects.update_or_create(
@@ -54,10 +94,8 @@ def run_scraper():
                 print(f"  ✓ Updated: {title[:50]}")
             success += 1
         else:
-            print(f"  ✗ Failed or empty content")
+            print(f"  ✗ Failed or empty")
             failed += 1
-        if i < len(URLS):
-            print(f"  Waiting 2 seconds...")
-            time.sleep(2)
+        time.sleep(0.5)
     print("=" * 50)
     print(f"Done! Saved: {success} | Failed: {failed}")
