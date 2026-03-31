@@ -72,12 +72,12 @@ def api_chat(request):
                 # General keyword search
                 pages = Page.objects.filter(query).filter(
                     url__icontains='/en/'
-                ).distinct()[:3]
+                ).distinct()[:2]
 
             if pages:
                 context_parts = []
                 for page in pages:
-                    limit = 1500 
+                    limit = 1500 if is_program_question else 1000
                     context_parts.append(f"--- {page.title} ---\n{page.content[:limit]}")
                 context = "\n\n".join(context_parts)
             else:
