@@ -1,21 +1,52 @@
 import requests
 from bs4 import BeautifulSoup
 import time
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
 
 SITEMAP_URLS = [
     "https://www.acibadem.edu.tr/sitemap.xml?page=1",
     "https://www.acibadem.edu.tr/sitemap.xml?page=2",
 ]
 
+SELENIUM_URLS = [
+    "https://obs.acibadem.edu.tr",
+]
+
+def get_selenium_driver():
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
+    options.binary_location = "/usr/bin/chromium"
+    service = Service("/usr/bin/chromedriver")
+    driver = webdriver.Chrome(service=service, options=options)
+    return driver
+
+def scrape_with_selenium(url):
+    try:
+        driver = get_selenium_driver()
+        driver.get(url)
+        time.sleep(3)
+        title = driver.title
+        content = driver.find_element(By.TAG_NAME, "body").text
+        content = ' '.join(content.split())
+        driver.quit()
+        return title, content
+    except Exception as e:
+        print(f"Selenium error for {url}: {e}")
+        return None, None
+
 def to_english_url(url):
-    """Convert Turkish URL to potential English URL"""
     return url.replace(
         'https://www.acibadem.edu.tr/',
         'https://www.acibadem.edu.tr/en/'
     )
 
 def english_url_exists(url):
-    """Quick HEAD request — no page download, just checks if URL works"""
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
         response = requests.head(url, headers=headers, timeout=5, allow_redirects=True)
@@ -27,16 +58,13 @@ def get_english_urls_from_sitemap():
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
         all_turkish_urls = []
-
         for sitemap_url in SITEMAP_URLS:
             response = requests.get(sitemap_url, headers=headers, timeout=10)
             soup = BeautifulSoup(response.text, 'html.parser')
             urls = [loc.text.strip() for loc in soup.find_all('loc')]
             all_turkish_urls.extend(urls)
             print(f"Found {len(urls)} URLs in {sitemap_url}")
-
         print(f"Total URLs: {len(all_turkish_urls)} — checking English versions...")
-
         english_urls = []
         for i, url in enumerate(all_turkish_urls, 1):
             en_url = to_english_url(url)
@@ -45,10 +73,8 @@ def get_english_urls_from_sitemap():
             if i % 50 == 0:
                 print(f"  Checked {i}/{len(all_turkish_urls)} — found {len(english_urls)} English pages so far...")
             time.sleep(0.3)
-
         print(f"Total valid English pages found: {len(english_urls)}")
         return english_urls
-
     except Exception as e:
         print(f"Error: {e}")
         return []
@@ -97,5 +123,19 @@ def run_scraper():
             print(f"  ✗ Failed or empty")
             failed += 1
         time.sleep(0.5)
+    print("\nScraping OBS pages with Selenium...")
+    for url in SELENIUM_URLS:
+        print(f"Selenium scraping: {url}")
+        title, content = scrape_with_selenium(url)
+        if title and content and len(content) > 100:
+            Page.objects.update_or_create(
+                url=url,
+                defaults={'title': title, 'content': content}
+            )
+            print(f"  ✓ Saved: {title[:50]}")
+            success += 1
+        else:
+            print(f"  ✗ Failed")
+            failed += 1
     print("=" * 50)
     print(f"Done! Saved: {success} | Failed: {failed}")
