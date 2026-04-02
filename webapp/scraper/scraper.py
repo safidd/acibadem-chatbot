@@ -11,6 +11,60 @@ SITEMAP_URLS = [
     "https://www.acibadem.edu.tr/sitemap.xml?page=2",
 ]
 
+BOLOGNA_URLS = [
+    # General info pages
+    'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=100&lang=en',
+    'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=101&lang=en',
+    'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=102&lang=en',
+    'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=103&lang=en',
+    'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=104&lang=en',
+    'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=300&lang=en',
+    'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=301&lang=en',
+    'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=302&lang=en',
+    'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=303&lang=en',
+    'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=304&lang=en',
+    'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=305&lang=en',
+    'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=309&lang=en',
+    'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=311&lang=en',
+    'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=400&lang=en',
+    'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=401&lang=en',
+    # Unit selection pages
+    'https://obs.acibadem.edu.tr/oibs/bologna/unitSelection.aspx?type=myo&lang=en',
+    'https://obs.acibadem.edu.tr/oibs/bologna/unitSelection.aspx?type=lis&lang=en',
+    'https://obs.acibadem.edu.tr/oibs/bologna/unitSelection.aspx?type=yls&lang=en',
+    'https://obs.acibadem.edu.tr/oibs/bologna/unitSelection.aspx?type=dok&lang=en',
+    # Department pages
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=11&curSunit=50',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=11&curSunit=6230',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=11&curSunit=48',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=07&curSunit=23',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=04&curSunit=6166',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=04&curSunit=16',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=14&curSunit=6247',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=01&curSunit=11',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=01&curSunit=12',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=01&curSunit=5946',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=05&curSunit=5',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=05&curSunit=3',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=05&curSunit=6108',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=05&curSunit=4',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=05&curSunit=2',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=12&curSunit=17',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=06&curSunit=1',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=09&curSunit=6187',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=09&curSunit=56',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=09&curSunit=74',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=09&curSunit=61',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=09&curSunit=6267',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=08&curSunit=6066',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=08&curSunit=6366',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=10&curSunit=76',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=09&curSunit=54',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=09&curSunit=6026',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=08&curSunit=6067',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=08&curSunit=6486',
+]
+
 SELENIUM_URLS = [
     "https://obs.acibadem.edu.tr",
 ]
@@ -137,5 +191,20 @@ def run_scraper():
         else:
             print(f"  ✗ Failed")
             failed += 1
+    print("\nScraping Bologna/OBS pages...")
+    for url in BOLOGNA_URLS:
+        print(f"Scraping: {url}")
+        title, content = get_page_content(url)
+        if title and content and len(content) > 100:
+            Page.objects.update_or_create(
+                url=url,
+                defaults={'title': title, 'content': content}
+            )
+            print(f"  ✓ Saved: {title[:50]}")
+            success += 1
+        else:
+            print(f"  ✗ Failed or empty")
+            failed += 1
+        time.sleep(0.3)
     print("=" * 50)
     print(f"Done! Saved: {success} | Failed: {failed}")
