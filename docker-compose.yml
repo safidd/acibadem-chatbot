@@ -11,7 +11,7 @@ services:
       - ollama_data:/root/.ollama
 
   db:
-    image: postgres:15
+    image: pgvector/pgvector:pg15
     restart: always
     environment:
       POSTGRES_DB: acudb

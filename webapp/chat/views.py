@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Q
+from pgvector.django import CosineDistance  # <-- NEW IMPORT FOR VECTOR MATH
 from .models import ChatMessage, Page
 import json
 import requests
@@ -28,23 +28,41 @@ def api_chat(request):
             if not user_question.strip():
                 return JsonResponse({"answer": "Please ask a question!"})
 
-            # Search database for relevant context
-            keywords = [w for w in user_question.lower().split() if len(w) > 3]
-            query = Q()
-            for keyword in keywords:
-                query |= Q(content__icontains=keyword) | Q(title__icontains=keyword)
+            # --- START OF WEEK 7 SEMANTIC SEARCH UPGRADE ---
+            
+            # 1. Ask Ollama to turn the user's question into a mathematical vector
+            question_vector = None
+            try:
+                embed_response = requests.post(
+                    "http://ollama:11434/api/embeddings",
+                    json={"model": "phi3", "prompt": user_question},
+                    timeout=10
+                )
+                if embed_response.status_code == 200:
+                    question_vector = embed_response.json().get('embedding')
+            except requests.exceptions.RequestException:
+                pass # If it fails, question_vector remains None
 
-            pages = Page.objects.filter(query).distinct()[:3]
+            # 2. Search PostgreSQL for the closest matching page vectors using Cosine Distance
+            if question_vector:
+                # This mathematically sorts the pages by closest meaning, grabbing the top 3
+                pages = Page.objects.filter(embedding__isnull=False).order_by(
+                    CosineDistance('embedding', question_vector)
+                )[:3]
+            else:
+                pages = []
 
+            # --- END OF UPGRADE ---
+
+            # Build the context string from the retrieved pages
             if pages:
                 context_parts = []
                 for page in pages:
                     context_parts.append(f"--- {page.title} ---\n{page.content[:1000]}")
                 context = "\n\n".join(context_parts)
             else:
-                all_pages = Page.objects.all()[:2]
-                context_parts = [f"--- {p.title} ---\n{p.content[:500]}" for p in all_pages]
-                context = "\n\n".join(context_parts)
+                # If no relevant pages are found or vector search fails, provide an empty context
+                context = "No specific context found in the database."
 
             # Build prompt
             full_prompt = f"""You are a helpful assistant for Acibadem University (ACU) in Istanbul, Turkey.
@@ -59,7 +77,7 @@ Question: {user_question}
 
 Answer:"""
 
-            # Call Ollama
+            # Call Ollama to generate the final chat answer
             ai_answer = "Sorry, I am having trouble connecting to my AI brain right now."
             try:
                 response = requests.post(
@@ -85,6 +103,6 @@ Answer:"""
         except json.JSONDecodeError:
             return JsonResponse({"answer": "There was an error reading your message."}, status=400)
         except Exception as e:
-            return JsonResponse({"answer": "An unexpected error occurred. Please try again."}, status=500)
+            return JsonResponse({"answer": f"An unexpected error occurred: {str(e)}"}, status=500)
 
     return JsonResponse({"error": "Only POST requests allowed"}, status=405)

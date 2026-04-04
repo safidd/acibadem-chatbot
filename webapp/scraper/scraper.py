@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import time
 
+
 URLS = [
     "https://www.acibadem.edu.tr/en",
     "https://www.acibadem.edu.tr/en/university",
