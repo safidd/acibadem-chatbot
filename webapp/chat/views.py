@@ -18,23 +18,37 @@ def health_check(request):
     return JsonResponse({'status': 'ok', 'message': 'ACU Chatbot is running!'})
 
 
-# Best pages for program/faculty questions
 PROGRAM_URLS = [
     'https://www.acibadem.edu.tr/en/akademik/lisans/muhendislik-ve-doga-bilimleri-fakultesi',
     'https://www.acibadem.edu.tr/en/akademik/lisans/saglik-bilimleri-fakultesi',
     'https://www.acibadem.edu.tr/en/akademik/lisans/tip-fakultesi',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=04&curSunit=6166',
 ]
 
-# Best page for transport questions
 TRANSPORT_URLS = [
     'https://www.acibadem.edu.tr/en/kayit/iletisim/ulasim',
 ]
 
+STUDENT_LIFE_URLS = [
+    'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=305&lang=en',
+    'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=301&lang=en',
+    'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=309&lang=en',
+    'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=304&lang=en',
+    'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=302&lang=en',
+    'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=303&lang=en',
+]
+
 PROGRAM_KEYWORDS = ['program', 'faculty', 'course', 'study', 'degree',
-                    'undergraduate', 'graduate', 'master', 'phd', 'offer', 'school']
+                    'undergraduate', 'graduate', 'master', 'phd', 'offer', 'school',
+                    'department', 'head', 'director', 'chair', 'engineering', 'computer',
+                    'doctorate', 'doctoral']
 
 TRANSPORT_KEYWORDS = ['bus', 'metro', 'transport', 'reach', 'get to',
                       'direction', 'how to come', 'located', 'campus', 'ulasim']
+
+STUDENT_LIFE_KEYWORDS = ['club', 'clubs', 'accommodation', 'dormitory', 'dorm',
+                          'sport', 'fitness', 'food', 'cafeteria',
+                          'social', 'housing', 'health service']
 
 
 @csrf_exempt
@@ -47,45 +61,54 @@ def api_chat(request):
             if not user_question.strip():
                 return JsonResponse({"answer": "Please ask a question!"})
 
-            # Search database for relevant context
             keywords = [w for w in user_question.lower().split() if len(w) > 3]
             query = Q()
             for keyword in keywords:
                 query |= Q(content__icontains=keyword) | Q(title__icontains=keyword)
 
             is_transport_question = any(w in user_question.lower() for w in TRANSPORT_KEYWORDS)
+            is_student_life_question = any(w in user_question.lower() for w in STUDENT_LIFE_KEYWORDS)
             is_program_question = any(w in user_question.lower() for w in PROGRAM_KEYWORDS)
 
             if is_transport_question:
-                # Use the transport page
                 pages = Page.objects.filter(url__in=TRANSPORT_URLS)
                 if not pages.exists():
-                    pages = Page.objects.filter(query).filter(url__icontains='/en/').distinct()[:3]
+                    pages = Page.objects.filter(query).filter(
+                        Q(url__icontains='/en/') | Q(url__icontains='lang=en')
+                    ).distinct()[:3]
+
+            elif is_student_life_question:
+                pages = Page.objects.filter(url__in=STUDENT_LIFE_URLS)
+                if not pages.exists():
+                    pages = Page.objects.filter(query).filter(
+                        Q(url__icontains='/en/') | Q(url__icontains='lang=en')
+                    ).distinct()[:3]
 
             elif is_program_question:
-                # Use the known best faculty pages
                 pages = Page.objects.filter(url__in=PROGRAM_URLS)
                 if pages.count() < 2:
-                    pages = Page.objects.filter(query).filter(url__icontains='/en/').distinct()[:3]
+                    pages = Page.objects.filter(query).filter(
+                        Q(url__icontains='/en/') | Q(url__icontains='lang=en')
+                    ).distinct()[:3]
 
             else:
-                # General keyword search
                 pages = Page.objects.filter(query).filter(
-                    url__icontains='/en/'
-                ).distinct()[:2]
+                    Q(url__icontains='/en/') | Q(url__icontains='lang=en')
+                ).distinct()[:3]
 
             if pages:
                 context_parts = []
                 for page in pages:
-                    limit = 1500 if is_program_question else 1000
+                    limit = 1500 if is_program_question else 500
                     context_parts.append(f"--- {page.title} ---\n{page.content[:limit]}")
                 context = "\n\n".join(context_parts)
             else:
-                all_pages = Page.objects.filter(url__icontains='/en/')[:2]
+                all_pages = Page.objects.filter(
+                    Q(url__icontains='/en/') | Q(url__icontains='lang=en')
+                )[:2]
                 context_parts = [f"--- {p.title} ---\n{p.content[:500]}" for p in all_pages]
                 context = "\n\n".join(context_parts)
 
-            # Build prompt
             full_prompt = f"""You are a helpful assistant for Acibadem University (ACU) in Istanbul, Turkey.
 Use the following information from ACU's website to answer the question accurately.
 Always respond in English regardless of the language of the context.
@@ -100,7 +123,6 @@ Question: {user_question}
 
 Answer:"""
 
-            # Call Ollama
             ai_answer = "Sorry, I am having trouble connecting to my AI brain right now."
             try:
                 response = requests.post(
@@ -118,7 +140,6 @@ Answer:"""
             except requests.exceptions.ConnectionError:
                 ai_answer = "My AI server is currently offline. Please check Docker!"
 
-            # Save to chat history
             ChatMessage.objects.create(question=user_question, answer=ai_answer)
 
             return JsonResponse({"answer": ai_answer})
