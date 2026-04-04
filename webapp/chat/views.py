@@ -18,6 +18,39 @@ def health_check(request):
     return JsonResponse({'status': 'ok', 'message': 'ACU Chatbot is running!'})
 
 
+PROGRAM_URLS = [
+    'https://www.acibadem.edu.tr/en/akademik/lisans/muhendislik-ve-doga-bilimleri-fakultesi',
+    'https://www.acibadem.edu.tr/en/akademik/lisans/saglik-bilimleri-fakultesi',
+    'https://www.acibadem.edu.tr/en/akademik/lisans/tip-fakultesi',
+    'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=04&curSunit=6166',
+]
+
+TRANSPORT_URLS = [
+    'https://www.acibadem.edu.tr/en/kayit/iletisim/ulasim',
+]
+
+STUDENT_LIFE_URLS = [
+    'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=305&lang=en',
+    'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=301&lang=en',
+    'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=309&lang=en',
+    'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=304&lang=en',
+    'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=302&lang=en',
+    'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=303&lang=en',
+]
+
+PROGRAM_KEYWORDS = ['program', 'faculty', 'course', 'study', 'degree',
+                    'undergraduate', 'graduate', 'master', 'phd', 'offer', 'school',
+                    'department', 'head', 'director', 'chair', 'engineering', 'computer',
+                    'doctorate', 'doctoral']
+
+TRANSPORT_KEYWORDS = ['bus', 'metro', 'transport', 'reach', 'get to',
+                      'direction', 'how to come', 'located', 'campus', 'ulasim']
+
+STUDENT_LIFE_KEYWORDS = ['club', 'clubs', 'accommodation', 'dormitory', 'dorm',
+                          'sport', 'fitness', 'food', 'cafeteria',
+                          'social', 'housing', 'health service']
+
+
 @csrf_exempt
 def api_chat(request):
     if request.method == 'POST':
@@ -58,16 +91,26 @@ def api_chat(request):
             if pages:
                 context_parts = []
                 for page in pages:
-                    context_parts.append(f"--- {page.title} ---\n{page.content[:1000]}")
+                    limit = 1500 if is_program_question else 500
+                    context_parts.append(f"--- {page.title} ---\n{page.content[:limit]}")
                 context = "\n\n".join(context_parts)
             else:
+<<<<<<< HEAD
                 # If no relevant pages are found or vector search fails, provide an empty context
                 context = "No specific context found in the database."
+=======
+                all_pages = Page.objects.filter(
+                    Q(url__icontains='/en/') | Q(url__icontains='lang=en')
+                )[:2]
+                context_parts = [f"--- {p.title} ---\n{p.content[:500]}" for p in all_pages]
+                context = "\n\n".join(context_parts)
+>>>>>>> 104d697d56acabe9c3fc9253070debfd0433648a
 
-            # Build prompt
             full_prompt = f"""You are a helpful assistant for Acibadem University (ACU) in Istanbul, Turkey.
 Use the following information from ACU's website to answer the question accurately.
 Always respond in English regardless of the language of the context.
+Be specific — list actual names, bus numbers, locations, and details mentioned in the context.
+Do not give vague summaries. Answer directly and concisely.
 Only answer based on the provided context. If the context doesn't contain the answer, say so politely.
 
 Context:
@@ -77,13 +120,16 @@ Question: {user_question}
 
 Answer:"""
 
+<<<<<<< HEAD
             # Call Ollama to generate the final chat answer
+=======
+>>>>>>> 104d697d56acabe9c3fc9253070debfd0433648a
             ai_answer = "Sorry, I am having trouble connecting to my AI brain right now."
             try:
                 response = requests.post(
                     "http://ollama:11434/api/generate",
                     json={"model": "phi3", "prompt": full_prompt, "stream": False},
-                    timeout=120
+                    timeout=180
                 )
                 if response.status_code == 200:
                     ai_answer = response.json().get('response', '')
@@ -95,7 +141,6 @@ Answer:"""
             except requests.exceptions.ConnectionError:
                 ai_answer = "My AI server is currently offline. Please check Docker!"
 
-            # Save to chat history
             ChatMessage.objects.create(question=user_question, answer=ai_answer)
 
             return JsonResponse({"answer": ai_answer})
