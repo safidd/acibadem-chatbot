@@ -1,7 +1,8 @@
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from pgvector.django import CosineDistance  # <-- NEW IMPORT FOR VECTOR MATH
+from django.db.models import Q
+from pgvector.django import CosineDistance
 from .models import ChatMessage, Page
 import json
 import requests
@@ -61,9 +62,11 @@ def api_chat(request):
             if not user_question.strip():
                 return JsonResponse({"answer": "Please ask a question!"})
 
-            # --- START OF WEEK 7 SEMANTIC SEARCH UPGRADE ---
-            
-            # 1. Ask Ollama to turn the user's question into a mathematical vector
+            is_transport_question = any(w in user_question.lower() for w in TRANSPORT_KEYWORDS)
+            is_student_life_question = any(w in user_question.lower() for w in STUDENT_LIFE_KEYWORDS)
+            is_program_question = any(w in user_question.lower() for w in PROGRAM_KEYWORDS)
+
+            # Try semantic search first
             question_vector = None
             try:
                 embed_response = requests.post(
@@ -74,20 +77,32 @@ def api_chat(request):
                 if embed_response.status_code == 200:
                     question_vector = embed_response.json().get('embedding')
             except requests.exceptions.RequestException:
-                pass # If it fails, question_vector remains None
+                pass
 
-            # 2. Search PostgreSQL for the closest matching page vectors using Cosine Distance
-            if question_vector:
-                # This mathematically sorts the pages by closest meaning, grabbing the top 3
+            if question_vector and Page.objects.filter(embedding__isnull=False).exists():
+                # Use semantic search if embeddings exist
                 pages = Page.objects.filter(embedding__isnull=False).order_by(
                     CosineDistance('embedding', question_vector)
                 )[:3]
+            elif is_transport_question:
+                pages = Page.objects.filter(url__in=TRANSPORT_URLS)
+            elif is_student_life_question:
+                pages = Page.objects.filter(url__in=STUDENT_LIFE_URLS)
+            elif is_program_question:
+                pages = Page.objects.filter(url__in=PROGRAM_URLS)
+                if pages.count() < 2:
+                    pages = Page.objects.filter(
+                        Q(url__icontains='/en/') | Q(url__icontains='lang=en')
+                    ).distinct()[:3]
             else:
-                pages = []
+                keywords = [w for w in user_question.lower().split() if len(w) > 3]
+                query = Q()
+                for keyword in keywords:
+                    query |= Q(content__icontains=keyword) | Q(title__icontains=keyword)
+                pages = Page.objects.filter(query).filter(
+                    Q(url__icontains='/en/') | Q(url__icontains='lang=en')
+                ).distinct()[:3]
 
-            # --- END OF UPGRADE ---
-
-            # Build the context string from the retrieved pages
             if pages:
                 context_parts = []
                 for page in pages:
@@ -95,16 +110,11 @@ def api_chat(request):
                     context_parts.append(f"--- {page.title} ---\n{page.content[:limit]}")
                 context = "\n\n".join(context_parts)
             else:
-<<<<<<< HEAD
-                # If no relevant pages are found or vector search fails, provide an empty context
-                context = "No specific context found in the database."
-=======
                 all_pages = Page.objects.filter(
                     Q(url__icontains='/en/') | Q(url__icontains='lang=en')
                 )[:2]
                 context_parts = [f"--- {p.title} ---\n{p.content[:500]}" for p in all_pages]
                 context = "\n\n".join(context_parts)
->>>>>>> 104d697d56acabe9c3fc9253070debfd0433648a
 
             full_prompt = f"""You are a helpful assistant for Acibadem University (ACU) in Istanbul, Turkey.
 Use the following information from ACU's website to answer the question accurately.
@@ -120,10 +130,6 @@ Question: {user_question}
 
 Answer:"""
 
-<<<<<<< HEAD
-            # Call Ollama to generate the final chat answer
-=======
->>>>>>> 104d697d56acabe9c3fc9253070debfd0433648a
             ai_answer = "Sorry, I am having trouble connecting to my AI brain right now."
             try:
                 response = requests.post(
