@@ -66,12 +66,12 @@ def api_chat(request):
             is_student_life_question = any(w in user_question.lower() for w in STUDENT_LIFE_KEYWORDS)
             is_program_question = any(w in user_question.lower() for w in PROGRAM_KEYWORDS)
 
-            # Try semantic search first
+            # Get question vector for semantic search
             question_vector = None
             try:
                 embed_response = requests.post(
                     "http://ollama:11434/api/embeddings",
-                    json={"model": "phi3", "prompt": user_question},
+                    json={"model": "nomic-embed-text", "prompt": user_question},
                     timeout=10
                 )
                 if embed_response.status_code == 200:
@@ -79,12 +79,8 @@ def api_chat(request):
             except requests.exceptions.RequestException:
                 pass
 
-            if question_vector and Page.objects.filter(embedding__isnull=False).exists():
-                # Use semantic search if embeddings exist
-                pages = Page.objects.filter(embedding__isnull=False).order_by(
-                    CosineDistance('embedding', question_vector)
-                )[:3]
-            elif is_transport_question:
+            # Keyword routing takes priority, semantic search for general questions
+            if is_transport_question:
                 pages = Page.objects.filter(url__in=TRANSPORT_URLS)
             elif is_student_life_question:
                 pages = Page.objects.filter(url__in=STUDENT_LIFE_URLS)
@@ -94,6 +90,11 @@ def api_chat(request):
                     pages = Page.objects.filter(
                         Q(url__icontains='/en/') | Q(url__icontains='lang=en')
                     ).distinct()[:3]
+            elif question_vector and Page.objects.filter(embedding__isnull=False).exists():
+                # Use semantic search for general questions
+                pages = Page.objects.filter(embedding__isnull=False).order_by(
+                    CosineDistance('embedding', question_vector)
+                )[:3]
             else:
                 keywords = [w for w in user_question.lower().split() if len(w) > 3]
                 query = Q()

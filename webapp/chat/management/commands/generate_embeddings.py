@@ -6,7 +6,6 @@ class Command(BaseCommand):
     help = 'Generates vector embeddings for all scraped pages using Ollama'
 
     def handle(self, *args, **kwargs):
-        # Find all pages that don't have an embedding yet
         pages = Page.objects.filter(embedding__isnull=True)
         
         if not pages.exists():
@@ -15,28 +14,35 @@ class Command(BaseCommand):
 
         self.stdout.write(f"Found {pages.count()} pages needing embeddings. Starting generation...")
 
+        success = 0
+        failed = 0
         for page in pages:
             try:
-                # Send the page content to Ollama
+                # Only send first 500 chars — enough for embedding, avoids timeouts
+                text = f"{page.title}. {page.content[:500]}"
+                
                 response = requests.post(
                     "http://ollama:11434/api/embeddings",
-                    json={"model": "phi3", "prompt": page.content},
-                    timeout=60  # Give it a minute to process large pages
+                    json={"model": "nomic-embed-text", "prompt": text},
+                    timeout=120
                 )
                 
                 if response.status_code == 200:
                     embedding = response.json().get('embedding')
                     if embedding:
-                        # Save the vector to the database
                         page.embedding = embedding
                         page.save()
-                        self.stdout.write(self.style.SUCCESS(f"Successfully embedded: {page.title}"))
+                        self.stdout.write(f"✓ {page.title[:60]}")
+                        success += 1
                     else:
-                        self.stdout.write(self.style.ERROR(f"No embedding returned for: {page.title}"))
+                        self.stdout.write(self.style.ERROR(f"✗ No embedding: {page.title[:60]}"))
+                        failed += 1
                 else:
-                    self.stdout.write(self.style.ERROR(f"Ollama error {response.status_code} for: {page.title}"))
+                    self.stdout.write(self.style.ERROR(f"✗ Error {response.status_code}: {page.title[:60]}"))
+                    failed += 1
             
             except Exception as e:
-                self.stdout.write(self.style.ERROR(f"Failed to embed {page.title}: {str(e)}"))
+                self.stdout.write(self.style.ERROR(f"✗ Failed {page.title[:60]}: {str(e)}"))
+                failed += 1
 
-        self.stdout.write(self.style.SUCCESS("Embedding generation complete!"))
+        self.stdout.write(self.style.SUCCESS(f"Done! Success: {success} | Failed: {failed}"))
