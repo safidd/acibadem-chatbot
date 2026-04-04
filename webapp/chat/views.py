@@ -44,7 +44,7 @@ PROGRAM_KEYWORDS = ['program', 'faculty', 'course', 'study', 'degree',
                     'department', 'head', 'director', 'chair', 'engineering', 'computer',
                     'doctorate', 'doctoral']
 
-TRANSPORT_KEYWORDS = ['bus', 'metro', 'transport', 'reach', 'get to',
+TRANSPORT_KEYWORDS = ['bus', 'buses', 'metro', 'transport', 'reach', 'get to',
                       'direction', 'how to come', 'located', 'campus', 'ulasim']
 
 STUDENT_LIFE_KEYWORDS = ['club', 'clubs', 'accommodation', 'dormitory', 'dorm',
@@ -107,7 +107,7 @@ def api_chat(request):
             if pages:
                 context_parts = []
                 for page in pages:
-                    limit = 1500 if is_program_question else 500
+                    limit = 1500 if is_program_question else 1000
                     context_parts.append(f"--- {page.title} ---\n{page.content[:limit]}")
                 context = "\n\n".join(context_parts)
             else:
