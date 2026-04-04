@@ -1,7 +1,4 @@
-version: '3.8'
-
 services:
-
   ollama:
     image: ollama/ollama
     restart: always
@@ -11,7 +8,7 @@ services:
       - ollama_data:/root/.ollama
 
   db:
-    image: postgres:15
+    image: pgvector/pgvector:pg15
     restart: always
     environment:
       POSTGRES_DB: acudb
@@ -19,8 +16,6 @@ services:
       POSTGRES_PASSWORD: acupass
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U acuuser -d acudb"]
       interval: 5s
