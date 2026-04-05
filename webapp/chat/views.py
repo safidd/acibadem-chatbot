@@ -97,7 +97,7 @@ def api_chat(request):
                 if question_vector and Page.objects.filter(embedding__isnull=False).exists():
                     pages = Page.objects.filter(embedding__isnull=False).order_by(
                         CosineDistance('embedding', question_vector)
-                    )[:3]
+                    )[:2]
                 else:
                     keywords = [w for w in user_question.lower().split() if len(w) > 3]
                     query = Q()
@@ -110,7 +110,12 @@ def api_chat(request):
             if pages:
                 context_parts = []
                 for page in pages:
-                    limit = 1500 if is_program_question else 800
+                    if is_program_question:
+                        limit = 1500
+                    elif is_transport_question: 
+                        limit = 1100 
+                    else:
+                        limit = 600
                     context_parts.append(f"--- {page.title} ---\n{page.content[:limit]}")
                 context = "\n\n".join(context_parts)
             else:
