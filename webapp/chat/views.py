@@ -50,6 +50,11 @@ TRANSPORT_KEYWORDS = ['bus', 'buses', 'metro', 'transport', 'reach', 'get to',
 STUDENT_LIFE_KEYWORDS = ['club', 'clubs', 'accommodation', 'dormitory', 'dorm',
                           'sport', 'fitness', 'food', 'cafeteria',
                           'social', 'housing', 'health service']
+LIBRARY_URLS = [
+    'https://www.acibadem.edu.tr/universite/ogretim-elemani-el-kitabi/kampus-olanaklari/kutuphane-ve-elektronik-kaynaklar',
+]
+
+LIBRARY_KEYWORDS = ['library', 'book', 'journal', 'database', 'resource', 'borrow', 'kütüphane']
 
 
 @csrf_exempt
