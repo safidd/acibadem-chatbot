@@ -66,48 +66,51 @@ def api_chat(request):
             is_student_life_question = any(w in user_question.lower() for w in STUDENT_LIFE_KEYWORDS)
             is_program_question = any(w in user_question.lower() for w in PROGRAM_KEYWORDS)
 
-            # Get question vector for semantic search
-            question_vector = None
-            try:
-                embed_response = requests.post(
-                    "http://ollama:11434/api/embeddings",
-                    json={"model": "nomic-embed-text", "prompt": user_question},
-                    timeout=10
-                )
-                if embed_response.status_code == 200:
-                    question_vector = embed_response.json().get('embedding')
-            except requests.exceptions.RequestException:
-                pass
-
-            # Keyword routing takes priority, semantic search for general questions
+            # Keyword routing takes priority over semantic search
             if is_transport_question:
                 pages = Page.objects.filter(url__in=TRANSPORT_URLS)
+
             elif is_student_life_question:
                 pages = Page.objects.filter(url__in=STUDENT_LIFE_URLS)
+
             elif is_program_question:
                 pages = Page.objects.filter(url__in=PROGRAM_URLS)
                 if pages.count() < 2:
                     pages = Page.objects.filter(
                         Q(url__icontains='/en/') | Q(url__icontains='lang=en')
                     ).distinct()[:3]
-            elif question_vector and Page.objects.filter(embedding__isnull=False).exists():
-                # Use semantic search for general questions
-                pages = Page.objects.filter(embedding__isnull=False).order_by(
-                    CosineDistance('embedding', question_vector)
-                )[:3]
+
             else:
-                keywords = [w for w in user_question.lower().split() if len(w) > 3]
-                query = Q()
-                for keyword in keywords:
-                    query |= Q(content__icontains=keyword) | Q(title__icontains=keyword)
-                pages = Page.objects.filter(query).filter(
-                    Q(url__icontains='/en/') | Q(url__icontains='lang=en')
-                ).distinct()[:3]
+                # Use semantic search for all other questions
+                question_vector = None
+                try:
+                    embed_response = requests.post(
+                        "http://ollama:11434/api/embeddings",
+                        json={"model": "nomic-embed-text", "prompt": user_question},
+                        timeout=10
+                    )
+                    if embed_response.status_code == 200:
+                        question_vector = embed_response.json().get('embedding')
+                except requests.exceptions.RequestException:
+                    pass
+
+                if question_vector and Page.objects.filter(embedding__isnull=False).exists():
+                    pages = Page.objects.filter(embedding__isnull=False).order_by(
+                        CosineDistance('embedding', question_vector)
+                    )[:3]
+                else:
+                    keywords = [w for w in user_question.lower().split() if len(w) > 3]
+                    query = Q()
+                    for keyword in keywords:
+                        query |= Q(content__icontains=keyword) | Q(title__icontains=keyword)
+                    pages = Page.objects.filter(query).filter(
+                        Q(url__icontains='/en/') | Q(url__icontains='lang=en')
+                    ).distinct()[:3]
 
             if pages:
                 context_parts = []
                 for page in pages:
-                    limit = 1500 if is_program_question else 1000
+                    limit = 1500 if is_program_question else 800
                     context_parts.append(f"--- {page.title} ---\n{page.content[:limit]}")
                 context = "\n\n".join(context_parts)
             else:
