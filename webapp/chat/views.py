@@ -37,6 +37,7 @@ STUDENT_LIFE_URLS = [
     'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=304&lang=en',
     'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=302&lang=en',
     'https://obs.acibadem.edu.tr/oibs/bologna/dynConPage.aspx?curPageId=303&lang=en',
+    'https://www.acibadem.edu.tr/universite/ogretim-elemani-el-kitabi/kampus-olanaklari/kutuphane-ve-elektronik-kaynaklar',
 ]
 
 PROGRAM_KEYWORDS = ['program', 'faculty', 'course', 'study', 'degree',
@@ -49,12 +50,8 @@ TRANSPORT_KEYWORDS = ['bus', 'buses', 'metro', 'transport', 'reach', 'get to',
 
 STUDENT_LIFE_KEYWORDS = ['club', 'clubs', 'accommodation', 'dormitory', 'dorm',
                           'sport', 'fitness', 'food', 'cafeteria',
-                          'social', 'housing', 'health service']
-LIBRARY_URLS = [
-    'https://www.acibadem.edu.tr/universite/ogretim-elemani-el-kitabi/kampus-olanaklari/kutuphane-ve-elektronik-kaynaklar',
-]
+                          'social', 'housing', 'health service', 'library', 'book']
 
-LIBRARY_KEYWORDS = ['library', 'book', 'journal', 'database', 'resource', 'borrow', 'kütüphane']
 
 
 @csrf_exempt
@@ -100,7 +97,11 @@ def api_chat(request):
                     pass
 
                 if question_vector and Page.objects.filter(embedding__isnull=False).exists():
-                    pages = Page.objects.filter(embedding__isnull=False).order_by(
+                    pages = Page.objects.filter(
+                        embedding__isnull=False
+                    ).filter(
+                        Q(url__icontains='/en/') | Q(url__icontains='lang=en') | Q(url__icontains='obs.acibadem')
+                    ).order_by(
                         CosineDistance('embedding', question_vector)
                     )[:2]
                 else:
