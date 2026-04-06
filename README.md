@@ -1,6 +1,6 @@
 # 🎓 ACU AI Chatbot
 
-A Django-based AI chatbot that answers questions about Acıbadem University using a locally running LLM (phi3 via Ollama), containerized with Docker & Docker Compose.
+A Django-based AI chatbot that answers questions about Acıbadem University using a RAG (Retrieval-Augmented Generation) pipeline with pgvector semantic search and a locally running LLM (phi3 via Ollama), containerized with Docker & Docker Compose.
 
 **Course:** CSE 322 – Cloud Computing | Acıbadem University | Spring 2026  
 **GitHub:** https://github.com/safidd/acibadem-chatbot
@@ -8,7 +8,6 @@ A Django-based AI chatbot that answers questions about Acıbadem University usin
 ---
 
 ## 🚀 Quick Start
-
 ```bash
 git clone https://github.com/safidd/acibadem-chatbot
 cd acibadem-chatbot
@@ -17,67 +16,117 @@ docker compose up -d
 
 Then open your browser and go to: **http://localhost:8000**
 
-> ⚠️ On first run, pull the AI model into the Ollama container:
+> ⚠️ On first run, pull the AI models:
 > ```bash
-> docker exec acibadem-chatbot-main-ollama-1 ollama pull phi3
+> docker compose exec ollama ollama pull phi3
+> docker compose exec ollama ollama pull nomic-embed-text
+> ```
+
+> ⚠️ Then scrape the data and generate embeddings:
+> ```bash
+> docker compose exec web python manage.py scrape
+> docker compose exec web python manage.py generate_embeddings
+> ```
+
+> ⚠️ Warm up phi3 before testing (takes ~30 seconds):
+> ```bash
+> docker compose exec ollama ollama run phi3 "hello"
 > ```
 
 ---
 
 ## 🏗️ System Architecture
-
-```
-┌─────────────────────────────────────────────────┐
-│                Docker Compose                    │
-│                                                 │
-│  ┌──────────┐    ┌──────────┐    ┌───────────┐  │
-│  │  Django  │───▶│PostgreSQL│    │  Ollama   │  │
-│  │  :8000   │    │  :5432   │    │  :11434   │  │
-│  └──────────┘    └──────────┘    └───────────┘  │
-│       │                               ▲          │
-│       └───────────────────────────────┘          │
-│              HTTP API (prompts)                  │
-└─────────────────────────────────────────────────┘
-```
-
+┌─────────────────────────────────────────────────────────┐
+│                     Docker Compose                       │
+│                                                         │
+│  ┌──────────┐    ┌─────────────────┐    ┌───────────┐  │
+│  │  Django  │───▶│   PostgreSQL 15  │    │  Ollama   │  │
+│  │  :8000   │    │  + pgvector ext  │    │  :11434   │  │
+│  └──────────┘    └─────────────────┘    └───────────┘  │
+│       │                  ▲                    ▲          │
+│       └──────────────────┼────────────────────┘         │
+│              RAG Pipeline (semantic search + LLM)        │
+└─────────────────────────────────────────────────────────┘
 **Containers:**
-- `web` — Django 4.x application (chat interface + REST API)
-- `db` — PostgreSQL 15 (stores scraped pages + chat history)
-- `ollama` — Local LLM service running phi3 model
+- `web` — Django 4.2 application (chat interface + REST API + scraper)
+- `db` — PostgreSQL 15 with pgvector extension (stores scraped pages + embeddings + chat history)
+- `ollama` — Local LLM service running phi3 (chat) and nomic-embed-text (embeddings)
 
-**How it works:**
+**RAG Pipeline:**
 1. User types a question in the chat interface
-2. Django searches the database for relevant ACU content
-3. The matched content + question are sent to Ollama as a prompt
-4. Ollama generates an answer which is displayed to the user and saved to chat history
+2. Question is embedded using `nomic-embed-text`
+3. pgvector finds the most semantically similar pages using CosineDistance
+4. Matched content + question are sent to phi3 as a structured prompt
+5. phi3 generates a factual answer based only on the provided context
+6. Answer is displayed to the user and saved to chat history
 
 ---
 
 ## 📁 Project Structure
 
-```
 acibadem-chatbot/
-├── docker-compose.yml          # Orchestrates all containers
+├── docker-compose.yml              # Orchestrates all containers
 ├── README.md
-├── webapp/
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   ├── manage.py
-│   ├── config/                 # Django settings, urls, wsgi
-│   ├── chat/                   # Main app
-│   │   ├── models.py           # Page, ChatMessage models
-│   │   ├── views.py            # chat_page, api_chat, health_check
-│   │   ├── llm.py              # Ollama integration & prompt engineering
-│   │   ├── api_urls.py         # /api/chat/ endpoint
-│   │   ├── urls.py
-│   │   └── sample_qa.md        # 10 sample Q&As for report
-│   ├── scraper/                # Data collection scripts
-│   └── templates/
-│       └── chat/
-│           └── chat.html       # Chat UI
-└── docs/
-    └── report.pdf
-```
+└── webapp/
+├── Dockerfile
+├── requirements.txt
+├── manage.py
+├── config/                     # Django settings, urls, wsgi
+├── chat/                       # Main app
+│   ├── models.py               # Page (with embedding), ChatMessage models
+│   ├── views.py                # chat_page, api_chat, health_check
+│   ├── management/
+│   │   └── commands/
+│   │       └── generate_embeddings.py  # Generate pgvector embeddings
+│   ├── migrations/             # DB migrations including pgvector
+│   ├── api_urls.py
+│   └── urls.py
+├── scraper/                    # Data collection
+│   ├── scraper.py              # BeautifulSoup + Selenium scraper
+│   ├── tests.py                # 15 scraper tests
+│   └── management/
+│       └── commands/
+│           └── scrape.py       # Django management command
+└── templates/
+└── chat/
+└── chat.html           # Chat UI
+---
+
+## 🗄️ Data Pipeline
+
+### Sources
+- **ACU Website** — All 4,880 sitemap URLs (Turkish + English pages)
+- **Bologna/OBS** — 48 pages from obs.acibadem.edu.tr ECTS catalog (programs, departments, student life)
+
+### Processing
+1. **Scrape** — BeautifulSoup for static pages, Selenium for JavaScript-rendered pages
+2. **Clean** — Remove pages under 300 chars (boilerplate, old events)
+3. **Embed** — Generate 768-dimensional vectors with `nomic-embed-text`
+4. **Store** — Save to PostgreSQL with pgvector extension
+
+### Statistics
+| Metric | Value |
+|--------|-------|
+| Total pages scraped | 3,245 |
+| Turkish pages | ~2,750 |
+| English pages | ~457 |
+| Bologna/OBS pages | 38 |
+| Average content length | 2,078 chars |
+| Embedding dimensions | 768 |
+| Scrape schedule | Every Sunday (django-crontab) |
+
+---
+
+## 🔍 Search Strategy
+
+The chatbot uses a hybrid routing strategy:
+
+| Question Type | Strategy | Example |
+|--------------|----------|---------|
+| Transport | Hardcoded URL | "Which buses go to ACU?" |
+| Student Life | Hardcoded URLs | "What clubs does ACU have?" |
+| Programs/Faculty | Hardcoded URLs | "What programs does ACU offer?" |
+| General | pgvector semantic search | "Tell me about ACU" |
 
 ---
 
@@ -85,100 +134,68 @@ acibadem-chatbot/
 
 ### `POST /api/chat/`
 
-Send a question and receive an AI-generated answer.
-
 **Request:**
 ```json
-{
-  "question": "What faculties does Acibadem University have?"
-}
+{ "message": "What programs does ACU offer?" }
 ```
 
 **Response:**
 ```json
-{
-  "question": "What faculties does Acibadem University have?",
-  "answer": "Acibadem University has the following faculties: Medicine, Dentistry, Pharmacy, Engineering and Natural Sciences, Health Sciences, and Economics and Administrative Sciences.",
-  "id": 1
-}
+{ "answer": "ACU offers programs in Engineering, Health Sciences, Medicine..." }
 ```
 
 ### `GET /health/`
-
-Health check endpoint — returns `{"status": "ok"}`.
-
----
-
-## 🤖 AI Integration
-
-- **Model:** phi3 (Microsoft) via Ollama
-- **Serving:** Ollama Docker container on port 11434
-- **Strategy:** Retrieval-Augmented Generation (RAG)
-  - Keywords extracted from the user's question
-  - Top 3 matching pages retrieved from PostgreSQL
-  - Context injected into a structured system prompt
-  - phi3 generates answer based only on provided context
-
-**Key prompt rules enforced:**
-- Answer ONLY using provided context — no training knowledge
-- Copy contact details exactly with no modifications
-- Redirect to acibadem.edu.tr if information is unavailable
-- Maximum 3 sentences per answer
+Returns `{"status": "ok", "message": "ACU Chatbot is running!"}`.
 
 ---
 
 ## 📅 What Was Built Each Week
 
-### Week 1 — Setup & Foundation
-- Repository created with full project structure
-- Docker Compose skeleton with Django and PostgreSQL working
-- Ollama installed and phi3 model tested locally
-- All team members onboarded to the repo
+### Weeks 1-5 — Foundation
+- Docker Compose setup with Django, PostgreSQL, Ollama
+- Basic chat interface and REST API
+- Initial scraper with BeautifulSoup
+- phi3 integration and prompt engineering
 
-### Week 2 — Add AI Container
-- Ollama service added to docker-compose.yml
-- `llm.py` created with Ollama HTTP integration and prompt engineering
-- `api_chat` view and `/api/chat/` endpoint added
-- Error handling added for LLM unavailability and timeouts
+### Week 6 — Sitemap Scraper (Safiye)
+- Sitemap-based scraping of 4,880 URLs with HEAD request validation
+- 141 English pages scraped and stored
+- Automatic weekly scraping with django-crontab
+- 6 passing scraper tests
 
-### Week 3 — Scrape University Data
-- Web scraper built using requests + BeautifulSoup
-- ACU pages scraped from acibadem.edu.tr and stored in the `Page` model
-- Django management command `python manage.py scrape` added
-- AI prompts tested with real scraped content
+### Week 7 — pgvector + Bologna Scraping (Betül + Safiye)
+- pgvector extension added to PostgreSQL
+- VectorField added to Page model (768 dimensions)
+- Bologna/OBS pages scraped using Selenium to extract JavaScript onclick URLs
+- 38 Bologna pages added (programs, student life, campus info)
 
-### Week 4 — Connect Everything
-- `get_context_from_db()` built to search database by keyword
-- `answer_question()` function built as the main AI entry point
-- Full pipeline tested: user question → DB search → context injection → Ollama → answer
-- Chat frontend connected to the REST API
-- Chat history saved to PostgreSQL on every question
+### Week 8 — Data Enrichment (Safiye)
+- Expanded scraper to include all Turkish pages (4,880 → 4,456 pages saved)
+- Cleaned 1,211 poor quality pages → 3,245 clean pages
+- Generated nomic-embed-text embeddings for all 3,245 pages
+- Implemented hybrid search routing in views.py
 
-### Week 5 — Demo Preparation
-- Keyword stopword filtering added to improve context retrieval
-- Prompt rules strengthened to eliminate hallucinations on contact details
-- 10 sample questions tested and documented
-- Admin panel verified to show scraped pages and chat history
-- Full Docker flow tested from zero
+### Week 9 — Search Quality + Tests (Safiye + Betül)
+- Keyword routing for transport, student life, and program questions
+- Semantic search with pgvector CosineDistance for general questions
+- Content limit tuning to prevent phi3 timeouts
+- 15 passing scraper tests (up from 6)
 
 ---
 
-## 🧪 Sample Q&A Results
+## 🧪 Demo Questions
 
-| # | Question | Result |
-|---|----------|--------|
-| 1 | What faculties does Acibadem University have? | ✅ Accurate |
-| 2 | Where is Acibadem University located? | ✅ Accurate |
-| 3 | What programs does the Faculty of Engineering offer? | ✅ Accurate |
-| 4 | How can I apply to Acibadem University? | ✅ Accurate |
-| 5 | What are the admission requirements for international students? | ✅ Accurate |
-| 6 | Does Acibadem University have exchange programs? | ✅ Accurate |
-| 7 | What is the language of instruction? | ✅ Accurate |
-| 8 | How many campuses does Acibadem University have? | ✅ Accurate |
-| 9 | What research centers does Acibadem University have? | ⚠️ Limited data |
-| 10 | How can I contact the student affairs office? | ✅ Accurate |
-
-> Full answers available in `webapp/chat/sample_qa.md`
+| Question | Answer |
+|----------|--------|
+| What programs does ACU offer? | Lists all faculties and departments |
+| Who is the head of Computer Engineering? | Prof. Dr. Ahmet Bulut |
+| Which buses can I take to ACU? | 19K, 19Y, 19V, 19S, 19T, 14A, 11T, 320A |
+| Where is ACU located? | Kayışdağı Cad. No:32, Ataşehir/Istanbul |
+| What student clubs does ACU have? | Full list of 30+ clubs |
+| Is there accommodation at ACU? | Yes, Kerem Aydınlar Dormitories |
+| What sports facilities does ACU have? | Pool, gym, courts, studios |
+| What doctorate programs are available? | Full PhD program list |
+| Tell me about Acibadem University | Detailed overview |
 
 ---
 
@@ -197,7 +214,6 @@ Health check endpoint — returns `{"status": "ok"}`.
 ---
 
 ## 📚 Useful Commands
-
 ```bash
 # Start all containers
 docker compose up -d
@@ -205,27 +221,42 @@ docker compose up -d
 # Stop all containers
 docker compose down
 
+# Warm up phi3 before testing
+docker compose exec ollama ollama run phi3 "hello"
+
+# Run scraper
+docker compose exec web python manage.py scrape
+
+# Generate embeddings
+docker compose exec web python manage.py generate_embeddings
+
+# Run tests
+docker compose exec web python manage.py test scraper
+
+# Check DB stats
+docker compose exec web python manage.py shell -c "
+from chat.models import Page
+print('Pages:', Page.objects.count())
+print('Embedded:', Page.objects.filter(embedding__isnull=False).count())
+"
+
 # View logs
 docker compose logs -f web
 
-# Run scraper
-docker exec acibadem-chatbot-main-web-1 python manage.py scrape
-
 # Access Django shell
-docker exec acibadem-chatbot-main-web-1 python manage.py shell
-
-# Check pages in DB
-docker exec acibadem-chatbot-main-web-1 python manage.py shell -c "from chat.models import Page; print(Page.objects.count(), 'pages')"
-
-# Pull AI model (first time only)
-docker exec acibadem-chatbot-main-ollama-1 ollama pull phi3
+docker compose exec web python manage.py shell
 ```
 
 ---
 
 ## 👥 Team
 
-Bartu · Betul · Safiye · Mina
+| Name | Role |
+|------|------|
+| Bartu | DevOps — Docker, pgvector setup, cloud deployment |
+| Betül | Backend — API, semantic search, caching |
+| Safiye | Data — Scraping, cleaning, embeddings |
+| Mina | AI — Embeddings, prompt engineering |
 
 ---
 
@@ -233,5 +264,7 @@ Bartu · Betul · Safiye · Mina
 
 - [Docker Compose Docs](https://docs.docker.com/compose)
 - [Django Documentation](https://docs.djangoproject.com)
+- [pgvector](https://github.com/pgvector/pgvector)
 - [Ollama](https://ollama.ai/docs)
+- [nomic-embed-text](https://ollama.com/library/nomic-embed-text)
 - [Acıbadem University](https://www.acibadem.edu.tr)
