@@ -16,6 +16,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'chat',
+    'scraper',
+    'django_crontab',
+    
 ]
 
 MIDDLEWARE = [
@@ -66,3 +69,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://ollama:11434')
 OLLAMA_MODEL = os.environ.get('OLLAMA_MODEL', 'phi3')
+# Auto scraping schedule — every Sunday at midnight
+CRONJOBS = [
+    ('0 0 * * 0', 'django.core.management.call_command', ['scrape']),
+]

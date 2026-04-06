@@ -1,10 +1,13 @@
 from django.db import models
+from pgvector.django import VectorField
 
 class Page(models.Model):
     title = models.CharField(max_length=500)
     url = models.URLField(max_length=1000, unique=True)
     content = models.TextField()
     scraped_at = models.DateTimeField(auto_now_add=True)
+    
+    embedding = VectorField(dimensions=768, null=True, blank=True)
 
     def __str__(self):
         return self.title
