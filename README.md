@@ -74,21 +74,6 @@ docker compose exec ollama ollama run phi3 "hello"
 
 ---
 
-## 🧪 Demo Questions
-
-| Question | Answer |
-|----------|--------|
-| What programs does ACU offer? | Lists all faculties and departments |
-| Who is the head of Computer Engineering? | Prof. Dr. Ahmet Bulut |
-| Which buses can I take to ACU? | 19K, 19Y, 19V, 19S, 19T, 14A, 11T, 320A |
-| Where is ACU located? | Kayışdağı Cad. No:32, Ataşehir/Istanbul |
-| What student clubs does ACU have? | Full list of 30+ clubs |
-| Is there accommodation at ACU? | Yes, Kerem Aydınlar Dormitories |
-| What sports facilities does ACU have? | Pool, gym, courts, studios |
-| What doctorate programs are available? | Full PhD program list |
-
----
-
 ## 📅 What Was Built Each Week
 
 **Weeks 1–5 — Foundation**
