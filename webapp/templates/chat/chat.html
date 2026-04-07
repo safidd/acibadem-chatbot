@@ -139,6 +139,36 @@
             color: #999;
             text-align: center;
         }
+
+        .feedback-container {
+            margin-top: 10px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .thumbs-up-btn {
+            background: none;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: #555;
+            transition: all 0.2s ease;
+        }
+
+        .thumbs-up-btn:hover {
+            background: #e6ffe6;
+            border-color: #28a745;
+            color: #28a745;
+        }
+
+        .thumbs-up-btn.liked {
+            background: #28a745;
+            border-color: #28a745;
+            color: white;
+            cursor: default;
+        }
     </style>
 </head>
 <body>
@@ -212,9 +242,20 @@
                     body: JSON.stringify({message: question})
                 });
                 const data = await response.json();
+                let feedbackHtml = '';
+                if (data.message_id) {
+                    feedbackHtml = `
+                        <div class="feedback-container">
+                            <button class="thumbs-up-btn" onclick="rateMessage(this, ${data.message_id})">👍 Mark as Helpful</button>
+                        </div>
+                    `;
+                }
+
                 document.getElementById(msgId).innerHTML = `
                     <div class="label">AI Answer</div>
-                    <div>${data.answer || data.error || 'No response received'}</div>`;
+                    <div>${data.answer || data.error || 'No response received'}</div>
+                    ${feedbackHtml}
+                `;
             } catch (error) {
                 document.getElementById(msgId).innerHTML = `
                     <div class="label">AI Answer</div>
@@ -222,6 +263,24 @@
             }
 
             container.scrollTop = container.scrollHeight;
+        }
+
+        async function rateMessage(buttonElement, messageId) {
+            if (!messageId || buttonElement.classList.contains('liked')) return;
+
+            try {
+                const response = await fetch(`/api/rate/${messageId}/`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                
+                if (response.ok) {
+                    buttonElement.classList.add('liked');
+                    buttonElement.innerHTML = '👍 Helpful';
+                }
+            } catch (error) {
+                console.error("Failed to rate message:", error);
+            }
         }
     </script>
 

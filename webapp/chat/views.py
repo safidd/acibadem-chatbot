@@ -3,6 +3,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q
 from pgvector.django import CosineDistance
+from django.core.cache import cache
 from .models import ChatMessage, Page
 import json
 import requests
@@ -64,6 +65,13 @@ def api_chat(request):
             if not user_question.strip():
                 return JsonResponse({"answer": "Please ask a question!"})
 
+            cache_key = f"answer_for_{user_question.strip().lower()}"
+            cached_answer = cache.get(cache_key)
+            if cached_answer:
+                return JsonResponse({"answer": cached_answer})
+            
+            question_vector = None
+            
             is_transport_question = any(w in user_question.lower() for w in TRANSPORT_KEYWORDS)
             is_student_life_question = any(w in user_question.lower() for w in STUDENT_LIFE_KEYWORDS)
             is_program_question = any(w in user_question.lower() for w in PROGRAM_KEYWORDS)
@@ -88,7 +96,7 @@ def api_chat(request):
                 try:
                     embed_response = requests.post(
                         "http://ollama:11434/api/embeddings",
-                        json={"model": "nomic-embed-text", "prompt": user_question},
+                        json={"model": "phi3", "prompt": user_question},
                         timeout=10
                     )
                     if embed_response.status_code == 200:
@@ -154,6 +162,7 @@ Answer:"""
                 )
                 if response.status_code == 200:
                     ai_answer = response.json().get('response', '')
+                    cache.set(cache_key, ai_answer, timeout=86400)  # Cache the answer for 24 hours
                 else:
                     ai_answer = f"The AI service returned an error (Code: {response.status_code})."
 
@@ -162,13 +171,31 @@ Answer:"""
             except requests.exceptions.ConnectionError:
                 ai_answer = "My AI server is currently offline. Please check Docker!"
 
-            ChatMessage.objects.create(question=user_question, answer=ai_answer)
+            chat_msg = ChatMessage.objects.create(question=user_question, answer=ai_answer)
 
-            return JsonResponse({"answer": ai_answer})
+            return JsonResponse({
+                "answer": ai_answer,
+                "message_id": chat_msg.id
+                })
 
         except json.JSONDecodeError:
             return JsonResponse({"answer": "There was an error reading your message."}, status=400)
         except Exception as e:
             return JsonResponse({"answer": f"An unexpected error occurred: {str(e)}"}, status=500)
 
+    return JsonResponse({"error": "Only POST requests allowed"}, status=405)
+
+@csrf_exempt
+def rate_message(request, message_id):
+    if request.method == 'POST':
+        try:
+            # Find the exact message in the database
+            msg = ChatMessage.objects.get(id=message_id)
+            # Flip the helpful switch to True
+            msg.is_helpful = True
+            msg.save()
+            return JsonResponse({"status": "success", "message": "Feedback saved!"})
+        except ChatMessage.DoesNotExist:
+            return JsonResponse({"error": "Message not found"}, status=404)
+            
     return JsonResponse({"error": "Only POST requests allowed"}, status=405)

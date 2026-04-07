@@ -16,6 +16,7 @@ class ChatMessage(models.Model):
     question = models.TextField()
     answer = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    is_helpful = models.BooleanField(default=False)
     context_pages = models.ManyToManyField(Page, blank=True)
 
     def __str__(self):
