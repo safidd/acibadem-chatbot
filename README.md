@@ -1,184 +1,107 @@
 # 🎓 ACU AI Chatbot
 
-A Django-based AI chatbot that answers questions about Acıbadem University using a locally running LLM (phi3 via Ollama), containerized with Docker & Docker Compose.
+A Django-based AI chatbot that answers questions about Acıbadem University using a RAG pipeline with pgvector semantic search and a locally running LLM (phi3 via Ollama), containerized with Docker & Docker Compose.
 
-**Course:** CSE 322 – Cloud Computing | Acıbadem University | Spring 2026  
+**Course:** CSE 322 – Cloud Computing | Acıbadem University | Spring 2026
 **GitHub:** https://github.com/safidd/acibadem-chatbot
 
 ---
 
 ## 🚀 Quick Start
-
 ```bash
 git clone https://github.com/safidd/acibadem-chatbot
 cd acibadem-chatbot
 docker compose up -d
 ```
 
-Then open your browser and go to: **http://localhost:8000**
+Open your browser at **http://localhost:8000**
 
-> ⚠️ On first run, pull the AI model into the Ollama container:
-> ```bash
-> docker exec acibadem-chatbot-main-ollama-1 ollama pull phi3
-> ```
+On first run, pull the AI models and scrape data:
+```bash
+docker compose exec ollama ollama pull phi3
+docker compose exec ollama ollama pull nomic-embed-text
+docker compose exec web python manage.py scrape
+docker compose exec web python manage.py generate_embeddings
+docker compose exec ollama ollama run phi3 "hello"
+```
 
 ---
 
 ## 🏗️ System Architecture
 
-```
-┌─────────────────────────────────────────────────┐
-│                Docker Compose                    │
-│                                                 │
-│  ┌──────────┐    ┌──────────┐    ┌───────────┐  │
-│  │  Django  │───▶│PostgreSQL│    │  Ollama   │  │
-│  │  :8000   │    │  :5432   │    │  :11434   │  │
-│  └──────────┘    └──────────┘    └───────────┘  │
-│       │                               ▲          │
-│       └───────────────────────────────┘          │
-│              HTTP API (prompts)                  │
-└─────────────────────────────────────────────────┘
-```
+| Container | Technology | Purpose |
+|-----------|-----------|---------|
+| web | Django 4.2 | Chat interface + REST API + scraper |
+| db | PostgreSQL 15 + pgvector | Pages, embeddings, chat history |
+| ollama | phi3 + nomic-embed-text | LLM chat and embedding generation |
 
-**Containers:**
-- `web` — Django 4.x application (chat interface + REST API)
-- `db` — PostgreSQL 15 (stores scraped pages + chat history)
-- `ollama` — Local LLM service running phi3 model
-
-**How it works:**
-1. User types a question in the chat interface
-2. Django searches the database for relevant ACU content
-3. The matched content + question are sent to Ollama as a prompt
-4. Ollama generates an answer which is displayed to the user and saved to chat history
+**RAG Pipeline:**
+1. User types a question
+2. Question is embedded using nomic-embed-text
+3. pgvector finds the most similar pages using CosineDistance
+4. Matched content + question sent to phi3 as a structured prompt
+5. phi3 generates a factual answer based only on the provided context
+6. Answer is displayed and saved to chat history
 
 ---
 
-## 📁 Project Structure
+## 🗄️ Data Pipeline
 
-```
-acibadem-chatbot/
-├── docker-compose.yml          # Orchestrates all containers
-├── README.md
-├── webapp/
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   ├── manage.py
-│   ├── config/                 # Django settings, urls, wsgi
-│   ├── chat/                   # Main app
-│   │   ├── models.py           # Page, ChatMessage models
-│   │   ├── views.py            # chat_page, api_chat, health_check
-│   │   ├── llm.py              # Ollama integration & prompt engineering
-│   │   ├── api_urls.py         # /api/chat/ endpoint
-│   │   ├── urls.py
-│   │   └── sample_qa.md        # 10 sample Q&As for report
-│   ├── scraper/                # Data collection scripts
-│   └── templates/
-│       └── chat/
-│           └── chat.html       # Chat UI
-└── docs/
-    └── report.pdf
-```
+| Metric | Value |
+|--------|-------|
+| Total pages | 3,245 |
+| Turkish pages | ~2,750 |
+| English pages | ~457 |
+| Bologna/OBS pages | 38 |
+| Average content length | 2,078 chars |
+| Embedding dimensions | 768 |
+| Scrape schedule | Every Sunday |
+
+**Sources:**
+- ACU Website — All 4,880 sitemap URLs (Turkish + English)
+- Bologna/OBS — 48 pages from obs.acibadem.edu.tr ECTS catalog
 
 ---
 
-## 🔌 API
+## 🔍 Search Strategy
 
-### `POST /api/chat/`
-
-Send a question and receive an AI-generated answer.
-
-**Request:**
-```json
-{
-  "question": "What faculties does Acibadem University have?"
-}
-```
-
-**Response:**
-```json
-{
-  "question": "What faculties does Acibadem University have?",
-  "answer": "Acibadem University has the following faculties: Medicine, Dentistry, Pharmacy, Engineering and Natural Sciences, Health Sciences, and Economics and Administrative Sciences.",
-  "id": 1
-}
-```
-
-### `GET /health/`
-
-Health check endpoint — returns `{"status": "ok"}`.
-
----
-
-## 🤖 AI Integration
-
-- **Model:** phi3 (Microsoft) via Ollama
-- **Serving:** Ollama Docker container on port 11434
-- **Strategy:** Retrieval-Augmented Generation (RAG)
-  - Keywords extracted from the user's question
-  - Top 3 matching pages retrieved from PostgreSQL
-  - Context injected into a structured system prompt
-  - phi3 generates answer based only on provided context
-
-**Key prompt rules enforced:**
-- Answer ONLY using provided context — no training knowledge
-- Copy contact details exactly with no modifications
-- Redirect to acibadem.edu.tr if information is unavailable
-- Maximum 3 sentences per answer
+| Question Type | Strategy | Example |
+|--------------|----------|---------|
+| Transport | Keyword routing | "Which buses go to ACU?" |
+| Student Life | Keyword routing | "What clubs does ACU have?" |
+| Programs/Faculty | Keyword routing | "What programs does ACU offer?" |
+| General | pgvector semantic search | "Tell me about ACU" |
 
 ---
 
 ## 📅 What Was Built Each Week
 
-### Week 1 — Setup & Foundation
-- Repository created with full project structure
-- Docker Compose skeleton with Django and PostgreSQL working
-- Ollama installed and phi3 model tested locally
-- All team members onboarded to the repo
+**Weeks 1–5 — Foundation**
+Docker Compose setup, basic chat interface, REST API, initial scraper, phi3 integration.
 
-### Week 2 — Add AI Container
-- Ollama service added to docker-compose.yml
-- `llm.py` created with Ollama HTTP integration and prompt engineering
-- `api_chat` view and `/api/chat/` endpoint added
-- Error handling added for LLM unavailability and timeouts
+**Week 6 — Sitemap Scraper**
+Sitemap-based scraping of 4,880 URLs, 141 English pages stored, weekly auto-scraping with django-crontab, 6 passing tests.
 
-### Week 3 — Scrape University Data
-- Web scraper built using requests + BeautifulSoup
-- ACU pages scraped from acibadem.edu.tr and stored in the `Page` model
-- Django management command `python manage.py scrape` added
-- AI prompts tested with real scraped content
+**Week 7 — pgvector + Bologna Scraping**
+pgvector added to PostgreSQL, VectorField on Page model (768 dims), 38 Bologna/OBS pages scraped with Selenium.
 
-### Week 4 — Connect Everything
-- `get_context_from_db()` built to search database by keyword
-- `answer_question()` function built as the main AI entry point
-- Full pipeline tested: user question → DB search → context injection → Ollama → answer
-- Chat frontend connected to the REST API
-- Chat history saved to PostgreSQL on every question
+**Week 8 — Data Enrichment**
+Expanded to all Turkish pages (141 → 4,456), cleaned 1,211 poor quality pages → 3,245 clean pages, embeddings generated.
 
-### Week 5 — Demo Preparation
-- Keyword stopword filtering added to improve context retrieval
-- Prompt rules strengthened to eliminate hallucinations on contact details
-- 10 sample questions tested and documented
-- Admin panel verified to show scraped pages and chat history
-- Full Docker flow tested from zero
+**Week 9 — Search Quality + Tests**
+Hybrid keyword routing + semantic search, content limit tuning, 15 passing scraper tests.
 
 ---
 
-## 🧪 Sample Q&A Results
-
-| # | Question | Result |
-|---|----------|--------|
-| 1 | What faculties does Acibadem University have? | ✅ Accurate |
-| 2 | Where is Acibadem University located? | ✅ Accurate |
-| 3 | What programs does the Faculty of Engineering offer? | ✅ Accurate |
-| 4 | How can I apply to Acibadem University? | ✅ Accurate |
-| 5 | What are the admission requirements for international students? | ✅ Accurate |
-| 6 | Does Acibadem University have exchange programs? | ✅ Accurate |
-| 7 | What is the language of instruction? | ✅ Accurate |
-| 8 | How many campuses does Acibadem University have? | ✅ Accurate |
-| 9 | What research centers does Acibadem University have? | ⚠️ Limited data |
-| 10 | How can I contact the student affairs office? | ✅ Accurate |
-
-> Full answers available in `webapp/chat/sample_qa.md`
+## 📚 Useful Commands
+```bash
+docker compose up -d
+docker compose down
+docker compose exec ollama ollama run phi3 "hello"
+docker compose exec web python manage.py scrape
+docker compose exec web python manage.py generate_embeddings
+docker compose exec web python manage.py test scraper
+```
 
 ---
 
@@ -186,52 +109,30 @@ Health check endpoint — returns `{"status": "ok"}`.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DB_HOST` | `db` | PostgreSQL host |
-| `DB_NAME` | `acudb` | Database name |
-| `DB_USER` | `acuuser` | Database user |
-| `DB_PASSWORD` | `acupass` | Database password |
-| `OLLAMA_URL` | `http://ollama:11434` | Ollama service URL |
-| `DJANGO_SECRET_KEY` | change-this | Django secret key |
-| `DEBUG` | `True` | Debug mode |
-
----
-
-## 📚 Useful Commands
-
-```bash
-# Start all containers
-docker compose up -d
-
-# Stop all containers
-docker compose down
-
-# View logs
-docker compose logs -f web
-
-# Run scraper
-docker exec acibadem-chatbot-main-web-1 python manage.py scrape
-
-# Access Django shell
-docker exec acibadem-chatbot-main-web-1 python manage.py shell
-
-# Check pages in DB
-docker exec acibadem-chatbot-main-web-1 python manage.py shell -c "from chat.models import Page; print(Page.objects.count(), 'pages')"
-
-# Pull AI model (first time only)
-docker exec acibadem-chatbot-main-ollama-1 ollama pull phi3
-```
+| DB_HOST | db | PostgreSQL host |
+| DB_NAME | acudb | Database name |
+| DB_USER | acuuser | Database user |
+| DB_PASSWORD | acupass | Database password |
+| OLLAMA_URL | http://ollama:11434 | Ollama service URL |
+| DJANGO_SECRET_KEY | change-this | Django secret key |
 
 ---
 
 ## 👥 Team
 
-Bartu · Betul · Safiye · Mina
+| Name | Role | Responsibility |
+|------|------|---------------|
+| Bartu | DevOps | Docker, pgvector, cloud deployment |
+| Betül | Backend | API, semantic search, caching |
+| Safiye | Data | Scraping, cleaning, embeddings |
+| Mina | AI | Embeddings, prompt engineering |
 
 ---
 
 ## 📖 Resources
 
-- [Docker Compose Docs](https://docs.docker.com/compose)
-- [Django Documentation](https://docs.djangoproject.com)
+- [Docker Compose](https://docs.docker.com/compose)
+- [Django](https://docs.djangoproject.com)
+- [pgvector](https://github.com/pgvector/pgvector)
 - [Ollama](https://ollama.ai/docs)
 - [Acıbadem University](https://www.acibadem.edu.tr)
