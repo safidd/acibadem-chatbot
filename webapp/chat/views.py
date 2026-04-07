@@ -96,7 +96,7 @@ def api_chat(request):
                 try:
                     embed_response = requests.post(
                         "http://ollama:11434/api/embeddings",
-                        json={"model": "phi3", "prompt": user_question},
+                        json={"model": "nomic-embed-text", "prompt": user_question},
                         timeout=10
                     )
                     if embed_response.status_code == 200:
