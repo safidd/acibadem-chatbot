@@ -1,15 +1,10 @@
 services:
-  ollama:
-    image: ollama/ollama
-    restart: always
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-
   db:
     image: pgvector/pgvector:pg15
+    platform: linux/arm64
     restart: always
+    ports:
+      - "5432:5432"     # <-- Add these two lines
     environment:
       POSTGRES_DB: acudb
       POSTGRES_USER: acuuser
@@ -48,6 +43,9 @@ services:
   ollama:
     image: ollama/ollama
     restart: always
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     ports:
       - "11434:11434"
     volumes:
