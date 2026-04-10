@@ -7,3 +7,4 @@ pgvector
 selenium==4.18.1
 webdriver-manager==4.0.1
 django-crontab==0.7.1
+django-redis
