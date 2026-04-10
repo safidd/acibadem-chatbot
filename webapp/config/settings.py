@@ -18,7 +18,6 @@ INSTALLED_APPS = [
     'chat',
     'scraper',
     'django_crontab',
-    
 ]
 
 MIDDLEWARE = [
@@ -47,14 +46,16 @@ TEMPLATES = [{
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-DATABASES = {'default': {
-    'ENGINE': 'django.db.backends.postgresql',
-    'NAME': os.environ.get('DB_NAME', 'acudb'),
-    'USER': os.environ.get('DB_USER', 'acuuser'),
-    'PASSWORD': os.environ.get('DB_PASSWORD', 'acupass'),
-    'HOST': os.environ.get('DB_HOST', 'db'),
-    'PORT': '5432',
-}}
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('DB_NAME', 'acudb'),
+        'USER': os.environ.get('DB_USER', 'acuuser'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'acupass'),
+        'HOST': os.environ.get('DB_HOST', 'db'),
+        'PORT': '5432',
+    }
+}
 
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Europe/Istanbul'
@@ -69,7 +70,20 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://ollama:11434')
 OLLAMA_MODEL = os.environ.get('OLLAMA_MODEL', 'phi3')
+
 # Auto scraping schedule — every Sunday at midnight
 CRONJOBS = [
     ('0 0 * * 0', 'django.core.management.call_command', ['scrape']),
 ]
+
+# Redis Cache Configuration (Week 8 - Bartu)
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": os.getenv("REDIS_URL", "redis://127.0.0.1:6379/1"),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+        "TIMEOUT": 300,
+    }
+}
