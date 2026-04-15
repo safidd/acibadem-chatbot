@@ -199,3 +199,27 @@ def rate_message(request, message_id):
             return JsonResponse({"error": "Message not found"}, status=404)
             
     return JsonResponse({"error": "Only POST requests allowed"}, status=405)
+
+def get_favorites(request):
+    if request.method == 'GET':
+        try:
+            # Grab all helpful messages, newest first
+            favorites = ChatMessage.objects.filter(is_helpful=True).order_by('-created_at')
+            
+            # Package them up into a list of dictionaries
+            favorites_list = [
+                {
+                    "id": msg.id,
+                    "question": msg.question,
+                    "answer": msg.answer,
+                    "date": msg.created_at.strftime("%Y-%m-%d")
+                }
+                for msg in favorites
+            ]
+            
+            return JsonResponse({"status": "success", "favorites": favorites_list})
+            
+        except Exception as e:
+            return JsonResponse({"error": f"Failed to load favorites: {str(e)}"}, status=500)
+            
+    return JsonResponse({"error": "Only GET requests allowed"}, status=405)
