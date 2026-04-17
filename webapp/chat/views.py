@@ -25,6 +25,7 @@ PROGRAM_URLS = [
     'https://www.acibadem.edu.tr/en/akademik/lisans/saglik-bilimleri-fakultesi',
     'https://www.acibadem.edu.tr/en/akademik/lisans/tip-fakultesi',
     'https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=en&curOp=showPac&curUnit=04&curSunit=6166',
+    'https://www.acibadem.edu.tr/akademik/lisans/muhendislik-ve-doga-bilimleri-fakultesi/yonetim',
 ]
 
 TRANSPORT_URLS = [
@@ -150,6 +151,8 @@ Context:
 {context}
 
 Question: {user_question}
+
+Answer in 3-5 sentences maximum. Do not generate follow-up questions or additional Q&A pairs. Stop after answering the question once.
 
 Answer:"""
 
