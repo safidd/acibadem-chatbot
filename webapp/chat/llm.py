@@ -1,9 +1,10 @@
+import os
 import requests
 
 OLLAMA_URL = "http://ollama:11434/api/generate"
 OLLAMA_URL_LOCAL = "http://localhost:11434/api/generate"
 MODEL_NAME = "phi3"
-
+EMBED_MODEL = "nomic-embed-text" # Added the embedding model you pulled earlier
 
 def _get_ollama_url():
     """Try Docker URL first, fall back to localhost for local testing."""
@@ -13,29 +14,39 @@ def _get_ollama_url():
     except:
         return OLLAMA_URL_LOCAL
 
+def get_embedding(text):
+    """Generate a vector embedding for the search query."""
+    url = _get_ollama_url().replace("/api/generate", "/api/embeddings")
+    try:
+        response = requests.post(
+            url,
+            json={"model": EMBED_MODEL, "prompt": text},
+            timeout=30
+        )
+        response.raise_for_status()
+        return response.json().get("embedding")
+    except Exception as e:
+        print(f"Embedding Error: {e}")
+        return None
 
 def ask_ollama(question, context=""):
     """
     Send a question to Ollama with optional context from scraped ACU data.
-    Returns the AI's answer as a string.
+    Updated for Week 9: Handles empty context and Turkish language requests.
     """
-    if context:
-        prompt = f"""You are a helpful assistant for Acibadem University (ACU).
-Use ONLY the following information from the ACU website to answer the question.
-If the answer is not in the context, say: "I don't have that information available. Please visit acibadem.edu.tr for more details."
-Do not make up any information. Be concise and helpful.
+    # Edge Case: The database semantic search found no relevant pages
+    if not context:
+        return "I couldn't find any specific information about that in the Acıbadem University database. Could you try rephrasing your question?"
 
-Context:
+    # Fine-tuned Prompt: Strict context boundaries and multi-language support
+    prompt = f"""You are the official AI assistant for Acıbadem University (ACU).
+You must answer the user's query strictly using ONLY the provided Context Information below.
+If the context does not contain the answer, politely say: "I don't have that information available based on the current data. Please visit acibadem.edu.tr for more details."
+If the user asks a question in Turkish, you MUST reply entirely in Turkish, but still base your facts strictly on the provided context.
+Do not make up any information. Be concise, professional, and helpful.
+
+Context Information:
 {context}
-
-Question: {question}
-
-Answer:"""
-    else:
-        prompt = f"""You are a helpful assistant for Acibadem University (ACU).
-Answer the following question about Acibadem University.
-If you are not sure about something, say so and suggest visiting acibadem.edu.tr.
-Be concise and helpful.
 
 Question: {question}
 
@@ -63,37 +74,47 @@ Answer:"""
     except Exception as e:
         return f"An error occurred: {str(e)}"
 
-
 def get_context_from_db(question):
     """
     Search the database for pages relevant to the question.
-    Returns combined text from the top matching pages.
+    Updated to use pgvector semantic search instead of basic keyword matching.
     """
     try:
         from .models import Page
-        from django.db.models import Q
 
-        # Split question into keywords and search
-        keywords = [w for w in question.lower().split() if len(w) > 3]
-        
-        query = Q()
-        for keyword in keywords:
-            query |= Q(content__icontains=keyword) | Q(title__icontains=keyword)
+        import importlib
+        try:
+            pgvector_django = importlib.import_module("pgvector.django")
+            L2Distance = pgvector_django.L2Distance
+        except (ImportError, ModuleNotFoundError):
+            print("pgvector package is not installed; semantic search unavailable.")
+            return ""
 
-        pages = Page.objects.filter(query).distinct()[:3]
+        # 1. Convert the user's question into a 768-dimensional vector
+        query_embedding = get_embedding(question)
+        if not query_embedding:
+            return ""
+
+        # 2. Perform a semantic distance search in PostgreSQL
+        # This calculates the cosine distance between the question and the database pages
+        pages = Page.objects.exclude(embedding__isnull=True).order_by(
+            L2Distance('embedding', query_embedding)
+        )[:3]
 
         if not pages:
             return ""
 
         context_parts = []
         for page in pages:
-            context_parts.append(f"--- {page.title} ---\n{page.content[:1000]}")
+            # Safely get title if it exists, otherwise fall back to URL
+            page_identifier = getattr(page, 'title', getattr(page, 'url', 'ACU Page'))
+            context_parts.append(f"--- {page_identifier} ---\n{page.content[:1000]}")
 
         return "\n\n".join(context_parts)
 
     except Exception as e:
+        print(f"Database Search Error: {e}")
         return ""
-
 
 def answer_question(question):
     """
@@ -103,7 +124,6 @@ def answer_question(question):
     context = get_context_from_db(question)
     return ask_ollama(question, context)
 
-
 def check_ollama_connection():
     """Returns True if Ollama is reachable, False otherwise."""
     try:
@@ -111,7 +131,6 @@ def check_ollama_connection():
         return True
     except:
         return False
-
 
 def list_available_models():
     """Returns a list of models available in Ollama."""
@@ -121,4 +140,4 @@ def list_available_models():
         data = response.json()
         return [model["name"] for model in data.get("models", [])]
     except:
-        return []
+        return [] 
