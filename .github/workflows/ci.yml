@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg15
+        env:
+          POSTGRES_DB: acudb
+          POSTGRES_USER: acuuser
+          POSTGRES_PASSWORD: acupass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd webapp
+          pip install -r requirements.txt
+
+      - name: Run tests
+        env:
+          DB_HOST: localhost
+          DB_NAME: acudb
+          DB_USER: acuuser
+          DB_PASSWORD: acupass
+          DJANGO_SECRET_KEY: test-secret-key
+          OLLAMA_URL: http://localhost:11434
+        run: |
+          cd webapp
+          python manage.py test chat
